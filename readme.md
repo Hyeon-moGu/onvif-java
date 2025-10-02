@@ -18,14 +18,14 @@ A core design principle of this library is non-blocking asynchronous operation.
 <dependency>
     <groupId>io.github.hyeon-mogu</groupId>
     <artifactId>onvif-java</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 </dependency>
 ```
 
 ### Gradle:
 
 ```Java
-implementation group: 'io.github.hyeon-mogu', name: 'onvif-java', version: '1.0.0'
+implementation group: 'io.github.hyeon-mogu', name: 'onvif-java', version: '1.0.1'
 ```
 
 ---
