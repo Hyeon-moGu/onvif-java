@@ -1,0 +1,40 @@
+name: Publish to Maven Central
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 8
+          cache: maven
+
+      - name: Write Sonatype Settings (Auth Fix)
+        run: |
+          mkdir -p ~/.m2
+          echo "<settings><servers><server><id>central</id><username>${{ secrets.SONATYPE_USERNAME }}</username><password>${{ secrets.SONATYPE_PASSWORD }}</password></server></servers></settings>" > ~/.m2/settings.xml
+
+      - name: Publish to Sonatype OSSRH
+        run: |
+          mvn clean install -B -P release -DskipTests
+          mvn deploy -B -P release
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
