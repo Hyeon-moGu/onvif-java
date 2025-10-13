@@ -1,4 +1,4 @@
-# ONVIF-Java Library
+# ONVIF Java Library: The **Asynchronous ONVIF Client** for **Java**
 
 This library is a powerful and easy-to-use Java tool for interacting with ONVIF-compliant devices, such as IP cameras. 
 It's designed to abstract away the complexity of the SOAP protocol, allowing developers to control ONVIF devices through intuitive Java method calls, without needing to handle the intricacies of XML requests and parsing.

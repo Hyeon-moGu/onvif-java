@@ -6,7 +6,10 @@
     <version>1.0.1</version>
 
     <name>onvif-java</name>
-    <description>A Java client library to discover, control and manage ONVIF-supported devices</description>
+	<description>
+		Onvif Java client library to discover, control and manage ONVIF-supported devices, 
+		especially IP cameras and video management systems. It offers an easy-to-use, asynchronous interface, abstracting complex ONVIF and SOAP protocol communication.
+	</description>
     <url>https://github.com/hyeon-mogu/onvif-java</url>
 
     <licenses>
@@ -93,7 +96,7 @@
                 </configuration>
             </plugin>
             
-            <!-- Central Publishing Plugin (공식 Sonatype 플러그인) -->
+            <!-- Central Publishing Plugin -->
             <plugin>
                 <groupId>org.sonatype.central</groupId>
                 <artifactId>central-publishing-maven-plugin</artifactId>
