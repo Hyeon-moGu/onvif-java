@@ -128,12 +128,15 @@ public class ImagingManager implements ImagingResponseListener{
 
 	    TOKEN_EXECUTOR.submit(() -> {
 	        try {
-	            latch.await(5, TimeUnit.SECONDS);
-	            if (token.get() != null && xaddr.get() != null) {
+	            if (!latch.await(5, TimeUnit.SECONDS) || token.get() == null || xaddr.get() == null) {
+	                String message = "Token or XAddr acquisition failed within timeout";
+	                onError(device, -2, message);
+	            } else {
 	                callback.onReady(token.get(), xaddr.get());
 	            }
 	        } catch (InterruptedException e) {
-	            // error handling
+	            Thread.currentThread().interrupt();
+	            onError(device, -3, "Token acquisition interrupted: " + e.getMessage());
 	        }
 	    });
 	}

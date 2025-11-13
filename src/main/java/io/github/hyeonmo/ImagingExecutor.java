@@ -26,122 +26,115 @@ import okhttp3.ResponseBody;
  */
 public class ImagingExecutor {
 
-    //Constants
-    public static final String TAG = ImagingExecutor.class.getSimpleName();
+	// Constants
+	public static final String TAG = ImagingExecutor.class.getSimpleName();
 
-    //Attributes
-    private OkHttpClient client;
-    private MediaType reqBodyType;
+	// Attributes
+	private OkHttpClient client;
+	private MediaType reqBodyType;
 
-    private ImagingResponseListener imagingResponseListener;
+	private ImagingResponseListener imagingResponseListener;
 
-    //Constructors
+	// Constructors
 
-    ImagingExecutor(ImagingResponseListener imagingResponseListener){
-    	this.imagingResponseListener = imagingResponseListener;
+	ImagingExecutor(ImagingResponseListener imagingResponseListener) {
+		this.imagingResponseListener = imagingResponseListener;
 
-        client = new OkHttpClient.Builder()
-        		.connectTimeout(30, TimeUnit.SECONDS)
-        		.writeTimeout(15, TimeUnit.SECONDS)
-        		.readTimeout(30, TimeUnit.SECONDS)
-                .build();
+		client = new OkHttpClient.Builder().connectTimeout(30, TimeUnit.SECONDS).writeTimeout(15, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).build();
 
-        reqBodyType = MediaType.parse("application/soap+xml; charset=utf-8;");
-    }
+		reqBodyType = MediaType.parse("application/soap+xml; charset=utf-8;");
+	}
 
-    /**
-     * Sends a request to the Onvif-compatible device.
-     *
-     * @param device
-     * @param request
-     */
-    void sendRequest(OnvifDevice onvifDevice, ImagingRequest request) {
-    	AuthXMLBuilder builder = new AuthXMLBuilder(onvifDevice.getUsername(), onvifDevice.getPassword());
-    	RequestBody reqBody = RequestBody.create(reqBodyType, builder.getAuthHeader() + request.getXml() + builder.getAuthEnd());
-    	xmlRequest(onvifDevice, request, buildOnvifRequest(request, reqBody));
-    }
+	/**
+	 * Sends a request to the Onvif-compatible device.
+	 *
+	 * @param device
+	 * @param request
+	 */
+	void sendRequest(OnvifDevice onvifDevice, ImagingRequest request) {
+		AuthXMLBuilder builder = new AuthXMLBuilder(onvifDevice.getUsername(), onvifDevice.getPassword());
+		RequestBody reqBody = RequestBody.create(reqBodyType, builder.getAuthHeader() + request.getXml() + builder.getAuthEnd());
+		xmlRequest(onvifDevice, request, buildOnvifRequest(request, reqBody));
+	}
 
-    void sendRequestUser(String userName, String password, ImagingRequest request) {
-    	AuthXMLBuilder builder = new AuthXMLBuilder(userName, password);
-    	RequestBody reqBody = RequestBody.create(reqBodyType, builder.getAuthHeader() + request.getXml() + builder.getAuthEnd());
-    	xmlRequest(null, request, buildOnvifRequest(request, reqBody));
-    }
+	void sendRequestUser(String userName, String password, ImagingRequest request) {
+		AuthXMLBuilder builder = new AuthXMLBuilder(userName, password);
+		RequestBody reqBody = RequestBody.create(reqBodyType, builder.getAuthHeader() + request.getXml() + builder.getAuthEnd());
+		xmlRequest(null, request, buildOnvifRequest(request, reqBody));
+	}
 
-    /**
-     * Clears up the resources.
-     */
-    void destroy() {
-    	imagingResponseListener = null;
+	/**
+	 * Clears up the resources.
+	 */
+	void destroy() {
+		imagingResponseListener = null;
 
-        if (client != null) {
-            client.dispatcher().executorService().shutdown();
-            client.connectionPool().evictAll();
+		if (client != null) {
+			client.dispatcher().executorService().shutdown();
+			client.connectionPool().evictAll();
 
-            client = null;
-        }
-    }
+			client = null;
+		}
+	}
 
-    //Properties
+	// Properties
 
-    private void xmlRequest(OnvifDevice onvifDevice, ImagingRequest request, Request xml) {
-    	if(xml == null)
-    		return;
+	private void xmlRequest(OnvifDevice onvifDevice, ImagingRequest request, Request xml) {
+		if (xml == null) return;
 
-    	client.newCall(xml)
-    			.enqueue(new Callback() {
+		client.newCall(xml).enqueue(new Callback() {
 
-    				@Override
-                    public void onResponse(Call call, Response xmlResponse) throws IOException {
-    					ImagingResponse response = new ImagingResponse(request);
-                        ResponseBody xmlBody = xmlResponse.body();
+			@Override
+			public void onResponse(Call call, Response xmlResponse) throws IOException {
+				ImagingResponse response = new ImagingResponse(request);
+				ResponseBody xmlBody = xmlResponse.body();
 
-                        if(xmlResponse.code() == 200 && xmlBody != null) {
-                        	response.setSuccess(true);
-                        	response.setXml(xmlBody.string());
+				if (xmlResponse.code() == 200 && xmlBody != null) {
+					response.setSuccess(true);
+					response.setXml(xmlBody.string());
 
-                        	parseResponse(onvifDevice, response);
-                        	return;
-                        }
+					parseResponse(onvifDevice, response);
+					return;
+				}
 
-                        String errorMessage = "";
-                        if(xmlBody != null)
-                        	errorMessage = xmlBody.string();
+				String errorMessage = "";
+				if (xmlBody != null) errorMessage = xmlBody.string();
 
-                        imagingResponseListener.onError(onvifDevice, xmlResponse.code(), errorMessage);
-    				}
+				imagingResponseListener.onError(onvifDevice, xmlResponse.code(), errorMessage);
+			}
 
-    				@Override
-					public void onFailure(Call call, IOException e) {
-						imagingResponseListener.onError(onvifDevice, -1, e.getMessage());
-					}
+			@Override
+			public void onFailure(Call call, IOException e) {
+				imagingResponseListener.onError(onvifDevice, -1, e.getMessage());
+			}
 
-    			});
-    }
+		});
+	}
 
-    private void parseResponse(OnvifDevice device, ImagingResponse response) {
-    	switch(response.request().getImagingType()) {
-    		case GET_IMAGING_SETTINGS:
-    			((GetImagingSettingsRequest) response.request()).getListener().onResponse(device,
-    					new GetImagingSettingsParser().parse(response));
-    			break;
-    		case FOCUS_MOVE:
-    			((ImagingFocusRequest) response.request()).getListener().onResponse(new ImagingFocusParser().parser(response));
-    			break;
-    		case FOCUS_STOP:
-    			((ImagingFocusStopRequest) response.request()).getListener().onResponse(new ImagingFocusParser().parser(response));
-    			break;
-    		default:
-    			imagingResponseListener.onResponse(device, response);
-    			break;
-    	}
-    }
+	private void parseResponse(OnvifDevice device, ImagingResponse response) {
+		switch (response.request().getImagingType()) {
+			case GET_IMAGING_SETTINGS:
+				if (response.request() instanceof GetImagingSettingsRequest) {
+					((GetImagingSettingsRequest) response.request()).getListener().onResponse(device, new GetImagingSettingsParser().parse(response));
+				}
+				break;
+			case FOCUS_MOVE:
+				if (response.request() instanceof ImagingFocusRequest) {
+					((ImagingFocusRequest) response.request()).getListener().onResponse(new ImagingFocusParser().parser(response));
+				}
+				break;
+			case FOCUS_STOP:
+				if (response.request() instanceof ImagingFocusStopRequest) {
+					((ImagingFocusStopRequest) response.request()).getListener().onResponse(new ImagingFocusParser().parser(response));
+				}
+				break;
+			default:
+				imagingResponseListener.onResponse(device, response);
+				break;
+		}
+	}
 
-    private Request buildOnvifRequest(ImagingRequest request, RequestBody reqBody) {
-        return new Request.Builder()
-                .url(request.getXAddr())
-                .addHeader("Content-Type", "text/xml; charset=utf-8")
-                .post(reqBody)
-                .build();
-    }
-
+	private Request buildOnvifRequest(ImagingRequest request, RequestBody reqBody) {
+		return new Request.Builder().url(request.getXAddr()).addHeader("Content-Type", "application/soap+xml; charset=utf-8").post(reqBody).build();
+	}
 }
