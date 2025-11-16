@@ -1,2 +1,9 @@
 /target/
 src/test/java/test/
+
+.settings/
+.project
+.classpath
+.DS_Store
+*.log
+*.bak
