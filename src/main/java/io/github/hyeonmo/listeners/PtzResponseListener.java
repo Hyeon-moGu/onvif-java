@@ -9,4 +9,5 @@ public interface PtzResponseListener {
 
 	void onResponse(PtzResponse ptzResponse);
 
+	void onError(int errorCode, String errorMessage);
 }

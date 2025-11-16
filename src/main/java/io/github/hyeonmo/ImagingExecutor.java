@@ -3,7 +3,9 @@ package io.github.hyeonmo;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import io.github.hyeonmo.listeners.ImagingFocusResponseListener;
 import io.github.hyeonmo.listeners.ImagingResponseListener;
+import io.github.hyeonmo.listeners.ImagingSettingsListener;
 import io.github.hyeonmo.models.OnvifDevice;
 import io.github.hyeonmo.parsers.GetImagingSettingsParser;
 import io.github.hyeonmo.parsers.ImagingFocusParser;
@@ -78,7 +80,6 @@ public class ImagingExecutor {
 	}
 
 	// Properties
-
 	private void xmlRequest(OnvifDevice onvifDevice, ImagingRequest request, Request xml) {
 		if (xml == null) return;
 
@@ -92,46 +93,68 @@ public class ImagingExecutor {
 				if (xmlResponse.code() == 200 && xmlBody != null) {
 					response.setSuccess(true);
 					response.setXml(xmlBody.string());
-
-					parseResponse(onvifDevice, response);
+					parseResponse(onvifDevice, response, true, 200, null);
 					return;
 				}
 
 				String errorMessage = "";
 				if (xmlBody != null) errorMessage = xmlBody.string();
 
-				imagingResponseListener.onError(onvifDevice, xmlResponse.code(), errorMessage);
+				parseResponse(onvifDevice, response, false, xmlResponse.code(), errorMessage);
 			}
 
 			@Override
 			public void onFailure(Call call, IOException e) {
-				imagingResponseListener.onError(onvifDevice, -1, e.getMessage());
+				ImagingResponse response = new ImagingResponse(request);
+				parseResponse(onvifDevice, response, false, -1, e.getMessage());
 			}
 
 		});
 	}
 
-	private void parseResponse(OnvifDevice device, ImagingResponse response) {
-		switch (response.request().getImagingType()) {
-			case GET_IMAGING_SETTINGS:
-				if (response.request() instanceof GetImagingSettingsRequest) {
-					((GetImagingSettingsRequest) response.request()).getListener().onResponse(device, new GetImagingSettingsParser().parse(response));
-				}
-				break;
-			case FOCUS_MOVE:
-				if (response.request() instanceof ImagingFocusRequest) {
-					((ImagingFocusRequest) response.request()).getListener().onResponse(new ImagingFocusParser().parser(response));
-				}
-				break;
-			case FOCUS_STOP:
-				if (response.request() instanceof ImagingFocusStopRequest) {
-					((ImagingFocusStopRequest) response.request()).getListener().onResponse(new ImagingFocusParser().parser(response));
-				}
-				break;
-			default:
-				imagingResponseListener.onResponse(device, response);
-				break;
-		}
+	private void parseResponse(OnvifDevice device, ImagingResponse response, boolean success, int errorCode, String errorMessage) {
+	    switch (response.request().getImagingType()) {
+	        case GET_IMAGING_SETTINGS:
+	            if (response.request() instanceof GetImagingSettingsRequest) {
+	                ImagingSettingsListener listener = ((GetImagingSettingsRequest) response.request()).getListener();
+	                if (success) {
+	                    listener.onResponse(device, new GetImagingSettingsParser().parse(response));
+	                } else {
+	                    listener.onError(device, errorCode, errorMessage);
+	                }
+	            }
+	            break;
+
+	        case FOCUS_MOVE:
+	            if (response.request() instanceof ImagingFocusRequest) {
+	                ImagingFocusResponseListener listener = ((ImagingFocusRequest) response.request()).getListener();
+	                if (success) {
+	                    listener.onResponse(new ImagingFocusParser().parser(response));
+	                } else {
+	                    listener.onError(errorCode, errorMessage);
+	                }
+	            }
+	            break;
+
+	        case FOCUS_STOP:
+	            if (response.request() instanceof ImagingFocusStopRequest) {
+	                ImagingFocusResponseListener listener = ((ImagingFocusStopRequest) response.request()).getListener();
+	                if (success) {
+	                    listener.onResponse(new ImagingFocusParser().parser(response));
+	                } else {
+	                    listener.onError(errorCode, errorMessage);
+	                }
+	            }
+	            break;
+
+	        default:
+	            if (success) {
+	                imagingResponseListener.onResponse(device, response);
+	            } else {
+	                imagingResponseListener.onError(device, errorCode, errorMessage);
+	            }
+	            break;
+	    }
 	}
 
 	private Request buildOnvifRequest(ImagingRequest request, RequestBody reqBody) {

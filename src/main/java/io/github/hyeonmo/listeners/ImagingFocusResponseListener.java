@@ -8,4 +8,6 @@ import io.github.hyeonmo.responses.ImagingResponse;
 public interface ImagingFocusResponseListener {
 
 	void onResponse(ImagingResponse imagingResponse);
+
+	void onError(int errorCode, String errorMessage);
 }

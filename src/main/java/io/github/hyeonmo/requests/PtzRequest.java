@@ -36,6 +36,9 @@ public class PtzRequest {
 
 	private OkHttpClient httpClient;
 
+	private static final MediaType SOAP_MEDIA_TYPE = MediaType.parse("application/soap+xml; charset=utf-8");
+    private static final int ERROR_CODE_PROFILE = -100;
+
 	public PtzRequest(OnvifManager onvifManager) {
 		this.onvifManager = onvifManager;
 	    this.ptzParser = new PtzParser();
@@ -46,7 +49,7 @@ public class PtzRequest {
                 .build();
 	}
 
-    public void move(OnvifDevice onvifDevice, PtzType ptzType, PtzResponseListener ptzResponseListener) {
+	public void move(OnvifDevice onvifDevice, PtzType ptzType, PtzResponseListener ptzResponseListener) {
     	String xaddr = onvifDevice.getAddresses().get(0);
 
         onvifManager.getMediaProfiles(onvifDevice, new OnvifMediaProfilesListener() {
@@ -54,8 +57,9 @@ public class PtzRequest {
             @Override
             public void onMediaProfilesReceived(OnvifDevice device, List<OnvifMediaProfile> mediaProfiles) {
             	if (mediaProfiles == null || mediaProfiles.isEmpty()) {
-            	    ptzResponseListener.onResponse(
-            	        ptzParser.parser("move", "No media profiles found")
+            	    ptzResponseListener.onError(
+            	        ERROR_CODE_PROFILE,
+            	        "No media profiles found to get Profile Token."
             	    );
             	    return;
             	}
@@ -69,7 +73,7 @@ public class PtzRequest {
         });
     }
 
-    public void stop(OnvifDevice onvifDevice, PtzResponseListener ptzResponseListener) {
+	public void stop(OnvifDevice onvifDevice, PtzResponseListener ptzResponseListener) {
     	String xaddr = onvifDevice.getAddresses().get(0);
 
         onvifManager.getMediaProfiles(onvifDevice, new OnvifMediaProfilesListener() {
@@ -77,8 +81,9 @@ public class PtzRequest {
             @Override
             public void onMediaProfilesReceived(OnvifDevice device, List<OnvifMediaProfile> mediaProfiles) {
             	if (mediaProfiles == null || mediaProfiles.isEmpty()) {
-            	    ptzResponseListener.onResponse(
-            	        ptzParser.parser("stop", "No media profiles found")
+            	    ptzResponseListener.onError(
+            	        ERROR_CODE_PROFILE,
+            	        "No media profiles found to get Profile Token"
             	    );
             	    return;
             	}
@@ -115,8 +120,9 @@ public class PtzRequest {
             @Override
             public void onMediaProfilesReceived(OnvifDevice device, List<OnvifMediaProfile> mediaProfiles) {
             	if (mediaProfiles == null || mediaProfiles.isEmpty()) {
-            	    ptzResponseListener.onResponse(
-            	        ptzParser.parser("stop", "No media profiles found")
+            	    ptzResponseListener.onError(
+            	        ERROR_CODE_PROFILE,
+            	        "No media profiles found to get Profile Token"
             	    );
             	    return;
             	}
@@ -138,21 +144,28 @@ public class PtzRequest {
     }
 
     private void sendSoap(String urlStr, String soapXml, PtzResponseListener listener, String type) {
-        RequestBody body = RequestBody.create(MediaType.parse("application/soap+xml; charset=utf-8"), soapXml);
-        Request request = new Request.Builder().url(urlStr).post(body).build();
+        RequestBody body = RequestBody.create(SOAP_MEDIA_TYPE, soapXml);
+
+        Request request = new Request.Builder()
+            .url(urlStr)
+            .addHeader("Content-Type", SOAP_MEDIA_TYPE.toString())
+            .post(body)
+            .build();
 
         httpClient.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                listener.onResponse(ptzParser.parser(type, e.getMessage()));
+                listener.onError(-1, "Network failure: " + e.getMessage());
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
+                String responseBody = response.body() != null ? response.body().string() : "";
+
                 if (!response.isSuccessful()) {
-                    listener.onResponse(ptzParser.parser(type, "Unexpected response: " + response));
+                    listener.onError(response.code(), "HTTP Error " + response.code() + ", Body: " + responseBody);
                 } else {
-                    listener.onResponse(ptzParser.parser(type, response.body() != null ? response.body().string() : ""));
+                    listener.onResponse(ptzParser.parser(type, responseBody));
                 }
             }
         });

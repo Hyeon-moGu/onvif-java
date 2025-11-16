@@ -9,4 +9,6 @@ import io.github.hyeonmo.models.OnvifDevice;
 public interface ImagingSettingsListener {
 
 	void onResponse(OnvifDevice onvifDevice, ImagingSettings imagingSettings);
+
+	void onError(OnvifDevice onvifDevice, int errorCode, String errorMessage);
 }
