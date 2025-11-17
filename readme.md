@@ -1,7 +1,6 @@
-# ONVIF Java Library: The **Asynchronous ONVIF Client** for **Java**
+# ONVIF Java Client: **Asynchronous Library** for **IP Camera Control**
 
-This library is a powerful and easy-to-use Java tool for interacting with ONVIF-compliant devices, such as IP cameras. 
-It's designed to abstract away the complexity of the SOAP protocol, allowing developers to control ONVIF devices through intuitive Java method calls, without needing to handle the intricacies of XML requests and parsing.
+This is a **lightweight, asynchronous Java client library** designed to simplify communication with **ONVIF-compliant IP cameras** and network video devices. By handling the complexity of the SOAP/XML protocol internally, this library allows developers to integrate robust camera control (PTZ, Imaging, Device Management) into their Java applications using simple, non-blocking method calls.
 
 **Beyond Simple Control**: While the library is designed for simple control using OnvifDevice objects, you also have the flexibility to make direct requests using a device's XAddr (web service address) and Token information when necessary.
 
@@ -32,15 +31,17 @@ implementation group: 'io.github.hyeon-mogu', name: 'onvif-java', version: '1.0.
 
 ## Key Features
 
-- **ONVIF Device Discovery and Connection** : Automatically discovers and connects to ONVIF devices on the network
+- **Asynchronous & Non-Blocking**: Non-blocking callback mechanism ensures application responsiveness during network operations.
 
-- **PTZ (Pan/Tilt/Zoom) Control** : Real-time control of the camera's direction and zoom
+- **ONVIF Device Discovery**: Automatically detects and connects to ONVIF-compliant IP cameras on the local network.
 
-- **Preset Management** : Save specific camera positions as presets and quickly move to a saved position
+- **Comprehensive PTZ Control**: Full support for real-time Pan/Tilt/Zoom movements and Stop functionality.
 
-- **Imaging Control** : Adjust camera imaging settings like focus and retrieve imaging capabilities and settings.
+- **PTZ Preset Management**: Save specific camera positions as presets and quickly move to a saved position (Save, Goto).
 
-- **Device Information Retrieval** : Retrieve information from connected devices
+- **Advanced Imaging Control**: Set and retrieve detailed camera parameters like Brightness, Exposure, Focus, and WDR.
+
+- **Device & Media Management**: Retrieve essential information, including Device Information, Media Profiles, and Snapshot URIs.
 
 ---
 
@@ -50,22 +51,21 @@ implementation group: 'io.github.hyeon-mogu', name: 'onvif-java', version: '1.0.
 
 ```java
 DiscoveryManager discoveryManager = new DiscoveryManager();
-discoveryManager.setDiscoveryTimeout(30000);	// 30sec
+discoveryManager.setDiscoveryTimeout(30000); // Set timeout (30 seconds)
 
 discoveryManager.discover(new DiscoveryListener() {
-
 	@Override
 	public void onDiscoveryStarted() {
-		logger.info("Discovery started");
-
+		logger.info("Discovery started...");
 	}
 
 	@Override
 	public void onDevicesFound(List<Device> devices) {
 		for(Device dv : devices) {
-			logger.info("Found: " + dv.getHostName());
+			logger.info("Found Device: {}", dv.getHostName());
 		}
 	}
+    // Error handling goes in onError()
 });
 ```
 
@@ -80,8 +80,8 @@ onvifManager.getCapabilities(onvifDevice, new OnvifCapabilitiesListener() {
 	
 	@Override
 	public void onDeviceCapabilitiesReceived(OnvifDevice onvifDevice, OnvifCapabilities onvifCapabilities) {
-		logger.info("Device XADDR: " + onvifCapabilities.getXaddr());
-		logger.info("Device MaxProfiles: " + onvifCapabilities.getMaximumNumberOfProfiles());
+		logger.info("Device XADDR: {}", onvifCapabilities.getXaddr());
+		logger.info("Device MaxProfiles: {}", onvifCapabilities.getMaximumNumberOfProfiles());
 		
 	}
 });
@@ -96,7 +96,7 @@ onvifManager.getMediaProfiles(onvifDevice, new OnvifMediaProfilesListener() {
 
 			@Override
 			public void onMediaSnapshotReceived(OnvifDevice device, OnvifMediaProfile profile, String uri) {
-				logger.info("==== Snapshot Uri: " + uri);
+				logger.info("==== Snapshot Uri: {}", uri);
 			}
 		});
 	}
@@ -112,13 +112,13 @@ onvifManager.getMediaProfiles(onvifDevice, new OnvifMediaProfilesListener() {
 ```java
 PtzManager ptzManager = new PtzManager();
 
-// Pan-tilt
+// Pan/tilt
 ptzManager.move(onvifDevice, PtzType.UP_RIGHT, new PtzResponseListener() {
 	
 	@Override
 	public void onResponse(PtzResponse ptzResponse) {
-		logger.info("PTZ result: " + ptzResponse.getMessage());
-		logger.info("PTZ boolean: " + ptzResponse.isSuccess());
+		logger.info("PTZ result: {}", ptzResponse.getMessage());
+		logger.info("PTZ boolean: {}", ptzResponse.isSuccess());
 		// etc . .
 	}
 });
@@ -152,7 +152,7 @@ ptzManager.preset(onvifDevice, pcSave, new PtzResponseListener() {
 
 	@Override
 	public void onResponse(PtzResponse ptzResponse) {
-		logger.info("Preset result xml: " + ptzResponse.getRawXml());
+		logger.info("Preset result xml: {}", ptzResponse.getRawXml());
 		// etc . .
 	}
 });
@@ -162,7 +162,7 @@ ptzManager.preset(onvifDevice, pcMove, new PtzResponseListener() {
 
 	@Override
 	public void onResponse(PtzResponse ptzResponse) {
-		logger.info("Preset result xml: " + ptzResponse.getRawXml());
+		logger.info("Preset result xml: {}", ptzResponse.getRawXml());
 		// etc . .
 	}
 });
@@ -175,13 +175,24 @@ ptzManager.preset(onvifDevice, pcMove, new PtzResponseListener() {
 ```java
 ImagingManager imagingManager = new ImagingManager();
 
-// ImagingSetting Information
+ImagingSettings settingsToUpdate = new ImagingSettings();
+settingsToUpdate.setBrightness(128); // Set a specific value
+settingsToUpdate.setExposureMode("AUTO"); // Set an enumeration value
+
+// Set Imaging Settings
+imagingManager.setImagingSettings(onvifDevice, settingsToUpdate, new ImagingSettingRequestListener() {
+	@Override
+	public void onResponse(ImagingResponse imagingResponse) {
+		logger.info("Imaging settings updated result xml: {}", imagingResponse.getXml());
+	}
+});
+
+// Get Imaging Settings
 imagingManager.getImagingSettings(onvifDevice, new ImagingSettingsListener() {
 
 	@Override
 	public void onResponse(OnvifDevice onvifDevice, ImagingSettings imagingSettings) {
-		logger.info("All ImagingSettings: " + imagingSettings.toString());
-		//etc . .
+		logger.info("All ImagingSettings: {}", imagingSettings.toString());
 	}
 });
 
@@ -190,8 +201,7 @@ imagingManager.focusContinuousMove(onvifDevice, 0.5, new ImagingFocusResponseLis
 	
 	@Override
 	public void onResponse(ImagingResponse imagingResponse) {
-		logger.info("Focus boolean: " + imagingResponse.isSuccess());
-		//etc . .
+		logger.info("Focus boolean: {}", imagingResponse.isSuccess());
 	}
 });
 ```
