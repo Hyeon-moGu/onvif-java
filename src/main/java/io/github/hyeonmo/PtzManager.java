@@ -1,10 +1,10 @@
 package io.github.hyeonmo;
 
-import io.github.hyeonmo.listeners.PtzResponseListener;
+import io.github.hyeonmo.listeners.ptz.PtzResponseListener;
 import io.github.hyeonmo.models.OnvifDevice;
-import io.github.hyeonmo.models.PresetCommand;
-import io.github.hyeonmo.models.PtzType;
-import io.github.hyeonmo.requests.PtzRequest;
+import io.github.hyeonmo.models.ptz.PresetCommand;
+import io.github.hyeonmo.models.ptz.PtzType;
+import io.github.hyeonmo.requests.ptz.PtzRequest;
 
 /**
  * Manages PTZ (Pan-Tilt-Zoom) and preset commands for ONVIF devices.

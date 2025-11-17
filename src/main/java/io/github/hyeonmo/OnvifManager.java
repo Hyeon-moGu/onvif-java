@@ -1,21 +1,21 @@
 package io.github.hyeonmo;
 
-import io.github.hyeonmo.listeners.OnvifCapabilitiesListener;
-import io.github.hyeonmo.listeners.OnvifDeviceInformationListener;
-import io.github.hyeonmo.listeners.OnvifMediaProfilesListener;
-import io.github.hyeonmo.listeners.OnvifMediaStreamURIListener;
 import io.github.hyeonmo.listeners.OnvifResponseListener;
-import io.github.hyeonmo.listeners.OnvifServicesListener;
-import io.github.hyeonmo.listeners.OnvifSnapshotURIListener;
+import io.github.hyeonmo.listeners.device.OnvifCapabilitiesListener;
+import io.github.hyeonmo.listeners.device.OnvifDeviceInformationListener;
+import io.github.hyeonmo.listeners.device.OnvifServicesListener;
+import io.github.hyeonmo.listeners.media.OnvifMediaProfilesListener;
+import io.github.hyeonmo.listeners.media.OnvifMediaStreamURIListener;
+import io.github.hyeonmo.listeners.media.OnvifSnapshotURIListener;
 import io.github.hyeonmo.models.OnvifDevice;
 import io.github.hyeonmo.models.OnvifMediaProfile;
-import io.github.hyeonmo.requests.GetCapabilitiesRequest;
-import io.github.hyeonmo.requests.GetDeviceInformationRequest;
-import io.github.hyeonmo.requests.GetMediaProfilesRequest;
-import io.github.hyeonmo.requests.GetMediaStreamRequest;
-import io.github.hyeonmo.requests.GetServicesRequest;
-import io.github.hyeonmo.requests.GetSnapshotRequest;
 import io.github.hyeonmo.requests.OnvifRequest;
+import io.github.hyeonmo.requests.device.GetCapabilitiesRequest;
+import io.github.hyeonmo.requests.device.GetDeviceInformationRequest;
+import io.github.hyeonmo.requests.device.GetServicesRequest;
+import io.github.hyeonmo.requests.media.GetMediaProfilesRequest;
+import io.github.hyeonmo.requests.media.GetMediaStreamRequest;
+import io.github.hyeonmo.requests.media.GetSnapshotRequest;
 import io.github.hyeonmo.responses.OnvifResponse;
 
 

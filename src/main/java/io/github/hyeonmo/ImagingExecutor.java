@@ -3,16 +3,19 @@ package io.github.hyeonmo;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-import io.github.hyeonmo.listeners.ImagingFocusResponseListener;
-import io.github.hyeonmo.listeners.ImagingResponseListener;
-import io.github.hyeonmo.listeners.ImagingSettingsListener;
+import io.github.hyeonmo.listeners.imaging.ImagingFocusResponseListener;
+import io.github.hyeonmo.listeners.imaging.ImagingResponseListener;
+import io.github.hyeonmo.listeners.imaging.ImagingSettingRequestListener;
+import io.github.hyeonmo.listeners.imaging.ImagingSettingsListener;
 import io.github.hyeonmo.models.OnvifDevice;
-import io.github.hyeonmo.parsers.GetImagingSettingsParser;
-import io.github.hyeonmo.parsers.ImagingFocusParser;
-import io.github.hyeonmo.requests.GetImagingSettingsRequest;
-import io.github.hyeonmo.requests.ImagingFocusRequest;
-import io.github.hyeonmo.requests.ImagingFocusStopRequest;
-import io.github.hyeonmo.requests.ImagingRequest;
+import io.github.hyeonmo.parsers.imaging.GetImagingSettingsParser;
+import io.github.hyeonmo.parsers.imaging.ImagingFocusParser;
+import io.github.hyeonmo.parsers.imaging.ImagingSettingRequestParser;
+import io.github.hyeonmo.requests.imaging.GetImagingSettingsRequest;
+import io.github.hyeonmo.requests.imaging.ImagingFocusRequest;
+import io.github.hyeonmo.requests.imaging.ImagingFocusStopRequest;
+import io.github.hyeonmo.requests.imaging.ImagingRequest;
+import io.github.hyeonmo.requests.imaging.ImagingSettingRequest;
 import io.github.hyeonmo.responses.ImagingResponse;
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -146,6 +149,17 @@ public class ImagingExecutor {
 	                }
 	            }
 	            break;
+
+	        case SET_SETTINGS:
+	        	if (response.request() instanceof ImagingSettingRequest) {
+	        		ImagingSettingRequestListener listener = ((ImagingSettingRequest) response.request()).getListener();
+	        		if(success) {
+	        			listener.onResponse(new ImagingSettingRequestParser().parser(response));
+	        		} else {
+	        			listener.onError(errorCode, errorMessage);
+	        		}
+	        	}
+	        	break;
 
 	        default:
 	            if (success) {

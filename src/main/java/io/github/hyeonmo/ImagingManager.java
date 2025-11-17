@@ -7,18 +7,21 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import io.github.hyeonmo.listeners.ImagingFocusResponseListener;
-import io.github.hyeonmo.listeners.ImagingResponseListener;
-import io.github.hyeonmo.listeners.ImagingSettingsListener;
-import io.github.hyeonmo.listeners.OnvifCapabilitiesListener;
-import io.github.hyeonmo.listeners.OnvifMediaProfilesListener;
+import io.github.hyeonmo.listeners.device.OnvifCapabilitiesListener;
+import io.github.hyeonmo.listeners.imaging.ImagingFocusResponseListener;
+import io.github.hyeonmo.listeners.imaging.ImagingResponseListener;
+import io.github.hyeonmo.listeners.imaging.ImagingSettingRequestListener;
+import io.github.hyeonmo.listeners.imaging.ImagingSettingsListener;
+import io.github.hyeonmo.listeners.media.OnvifMediaProfilesListener;
 import io.github.hyeonmo.models.OnvifCapabilities;
 import io.github.hyeonmo.models.OnvifDevice;
 import io.github.hyeonmo.models.OnvifMediaProfile;
-import io.github.hyeonmo.requests.GetImagingSettingsRequest;
-import io.github.hyeonmo.requests.ImagingFocusRequest;
-import io.github.hyeonmo.requests.ImagingFocusStopRequest;
-import io.github.hyeonmo.requests.ImagingRequest;
+import io.github.hyeonmo.models.imaging.ImagingSettings;
+import io.github.hyeonmo.requests.imaging.GetImagingSettingsRequest;
+import io.github.hyeonmo.requests.imaging.ImagingFocusRequest;
+import io.github.hyeonmo.requests.imaging.ImagingFocusStopRequest;
+import io.github.hyeonmo.requests.imaging.ImagingRequest;
+import io.github.hyeonmo.requests.imaging.ImagingSettingRequest;
 import io.github.hyeonmo.responses.ImagingResponse;
 
 /**
@@ -79,6 +82,18 @@ public class ImagingManager implements ImagingResponseListener{
 
 	public void focusStop(String videoSourceToken, String imagingXaddr, String userName, String password, ImagingFocusResponseListener listener) {
 		ImagingRequest request = new ImagingFocusStopRequest(listener, videoSourceToken, imagingXaddr);
+		executor.sendRequestUser(userName, password, request);
+	}
+
+	public void setImagingSettings(OnvifDevice device, ImagingSettings imagingSettings, ImagingSettingRequestListener listener) {
+		getToken(device, (token, xaddr) -> {
+			ImagingRequest request = new ImagingSettingRequest(listener, token, xaddr, imagingSettings);
+			executor.sendRequest(device, request);
+		});
+	}
+
+	public void setImagingSettings(String videoSourceToken, String imagingXaddr, String userName, String password, ImagingSettings imagingSettings, ImagingSettingRequestListener listener) {
+		ImagingRequest request = new ImagingSettingRequest(listener, videoSourceToken, imagingXaddr, imagingSettings);
 		executor.sendRequestUser(userName, password, request);
 	}
 

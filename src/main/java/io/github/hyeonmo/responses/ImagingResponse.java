@@ -1,6 +1,6 @@
 package io.github.hyeonmo.responses;
 
-import io.github.hyeonmo.requests.ImagingRequest;
+import io.github.hyeonmo.requests.imaging.ImagingRequest;
 
 /**
  * Created by Hyeonmo Gu on 24/09/2025.

@@ -7,8 +7,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.Random;
 
-import io.github.hyeonmo.models.PresetCommand;
-import io.github.hyeonmo.models.PtzType;
+import io.github.hyeonmo.models.ptz.PresetCommand;
+import io.github.hyeonmo.models.ptz.PtzType;
 
 /**
  * Created by Hyeonmo Gu on 17/09/2025.
