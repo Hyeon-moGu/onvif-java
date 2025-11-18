@@ -123,6 +123,10 @@ public class AuthXMLBuilder {
 	                   "  <tptz:ProfileToken>" + profileToken + "</tptz:ProfileToken>\r\n" +
 	                   "  <tptz:PresetToken>" + token + "</tptz:PresetToken>\r\n" +
 	                   "</tptz:GotoPreset>";
+	        case GET:
+	            return "<tptz:GetPresets>\r\n" +
+		                "  <tptz:ProfileToken>" + profileToken + "</tptz:ProfileToken>\r\n" +
+		                "</tptz:GetPresets>";
 	        case SAVE:
 	            return "<tptz:SetPreset>\r\n" +
 	                   "  <tptz:ProfileToken>" + profileToken + "</tptz:ProfileToken>\r\n" +
@@ -136,6 +140,30 @@ public class AuthXMLBuilder {
 	        default:
 	            return "";
 	    }
+	}
+
+	public String getPtzStatusBody(String profileToken) {
+		StringBuilder sb = new StringBuilder();
+
+		sb.append("<tptz:GetStatus>");
+		sb.append("<tptz:ProfileToken>");
+		sb.append(profileToken);
+		sb.append("</tptz:ProfileToken>");
+		sb.append("</tptz:GetStatus>");
+
+		return sb.toString();
+	}
+
+	public String getPtzPresetsBody(String profileToken) {
+		StringBuilder sb = new StringBuilder();
+
+		sb.append("<tptz:GetPresets>");
+		sb.append("<tptz:ProfileToken>");
+		sb.append(profileToken);
+		sb.append("</tptz:ProfileToken>");
+		sb.append("</tptz:GetPresets>");
+
+		return sb.toString();
 	}
 
 }

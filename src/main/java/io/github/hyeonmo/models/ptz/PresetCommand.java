@@ -7,6 +7,7 @@ public class PresetCommand {
 
     public enum PresetAction {
         SAVE,
+        GET,
         MOVE,
         REMOVE
     }

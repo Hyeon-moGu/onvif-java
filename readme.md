@@ -9,6 +9,13 @@ A core design principle of this library is non-blocking asynchronous operation.
 
 ---
 
+### ✅ Tested On
+* **Vendor:** UNIVIEW
+* **Model:** IPC6222ER-X20
+* **Firmware:** IPC_HCMN1102-R5028P07D1603C02
+
+---
+
 ## Installation
 
 ### Maven:
@@ -31,13 +38,17 @@ implementation group: 'io.github.hyeon-mogu', name: 'onvif-java', version: '1.0.
 
 ## Key Features
 
+- **Standard WS-Security Authentication**: Securely authenticates using the WS-Security (Username Token Profile) Password Digest method, adhering to the strict ONVIF standard.
+
 - **Asynchronous & Non-Blocking**: Non-blocking callback mechanism ensures application responsiveness during network operations.
 
 - **ONVIF Device Discovery**: Automatically detects and connects to ONVIF-compliant IP cameras on the local network.
 
 - **Comprehensive PTZ Control**: Full support for real-time Pan/Tilt/Zoom movements and Stop functionality.
 
-- **PTZ Preset Management**: Save specific camera positions as presets and quickly move to a saved position (Save, Goto).
+- **PTZ Preset Management**: Comprehensive preset management including saving positions (Save), moving to saved positions (Goto), retrieving the full list of presets (GetPresets), and deleting existing presets (Remove).
+
+- **PTZ Status Inquiry**: Retrieve the camera's current PTZ position, move status (e.g., IDLE/MOVING), and current UTC time.
 
 - **Advanced Imaging Control**: Set and retrieve detailed camera parameters like Brightness, Exposure, Focus, and WDR.
 
@@ -147,12 +158,21 @@ ptzManager.stop(onvifDevice, new PtzResponseListener() {
 ### PTZManager(Preset operation)
 
 ```java
+PresetCommand pcGet = new PresetCommand(PresetAction.GET, null);
+ptzManager.preset(onvifDevice, pcGet, new PtzResponseListener() {
+
+	@Override
+	public void onResponse(PtzResponse ptzResponse) {
+		logger.info("Preset GET result: {}", ptzResponse.getMessage()); 
+	}
+});
+
 PresetCommand pcSave = new PresetCommand(PresetAction.SAVE, "example");
 ptzManager.preset(onvifDevice, pcSave, new PtzResponseListener() {
 
 	@Override
 	public void onResponse(PtzResponse ptzResponse) {
-		logger.info("Preset result xml: {}", ptzResponse.getRawXml());
+		logger.info("Preset SAVE result xml: {}", ptzResponse.getRawXml());
 		// etc . .
 	}
 });
@@ -162,8 +182,25 @@ ptzManager.preset(onvifDevice, pcMove, new PtzResponseListener() {
 
 	@Override
 	public void onResponse(PtzResponse ptzResponse) {
-		logger.info("Preset result xml: {}", ptzResponse.getRawXml());
+		logger.info("Preset MOVE result xml: {}", ptzResponse.getRawXml());
 		// etc . .
+	}
+});
+```
+
+---
+
+### PTZManager(Status Inquiry)
+
+```java
+PtzManager ptzManager = new PtzManager();
+
+ptzManager.getStatus(onvifDevice, new PtzResponseListener() {
+	
+	@Override
+	public void onResponse(PtzResponse ptzResponse) {
+		logger.info("PTZ Status result: {}", ptzResponse.getMessage());
+		// Message: Position: (Pan: 0.1, Tilt: 0.2, Zoom: 0.0), MoveStatus: (PanTilt: IDLE, Zoom: IDLE), Time: ...
 	}
 });
 ```

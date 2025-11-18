@@ -111,6 +111,14 @@ public class PtzManager {
 		ptzRequest.preset(xaddr, profileToken, userName, password, presetCommand, ptzResponseListener);
 	}
 
+	public void getStatus(OnvifDevice onvifDevice, PtzResponseListener ptzResponseListener) {
+		ptzRequest.getStatus(onvifDevice, ptzResponseListener);
+	}
+
+	public void getStatus(String xaddr, String profileToken, String userName, String password, PtzResponseListener ptzResponseListener) {
+		ptzRequest.getStatus(xaddr, profileToken, userName, password, ptzResponseListener);
+	}
+
 	/* -------------------- Utility methods -------------------- */
 
 	public void setPtzRequestTimeout(int to) {

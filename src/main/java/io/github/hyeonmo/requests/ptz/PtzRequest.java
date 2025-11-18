@@ -143,6 +143,37 @@ public class PtzRequest {
 		sendSoap(xaddr, soapXml, ptzResponseListener, "preset");
     }
 
+    public void getStatus(OnvifDevice onvifDevice, PtzResponseListener ptzResponseListener) {
+    	String xaddr = onvifDevice.getAddresses().get(0);
+
+        onvifManager.getMediaProfiles(onvifDevice, new OnvifMediaProfilesListener() {
+
+            @Override
+            public void onMediaProfilesReceived(OnvifDevice device, List<OnvifMediaProfile> mediaProfiles) {
+            	if (mediaProfiles == null || mediaProfiles.isEmpty()) {
+            	    ptzResponseListener.onError(
+            	        ERROR_CODE_PROFILE,
+            	        "No media profiles found to get Profile Token"
+            	    );
+            	    return;
+            	}
+                String profileToken = mediaProfiles.get(0).getToken();
+
+            	AuthXMLBuilder builder = new AuthXMLBuilder(onvifDevice.getUsername(), onvifDevice.getPassword());
+
+        		String soapXml = builder.getAuthHeader() + builder.getPtzStatusBody(profileToken) + builder.getAuthEnd();
+        		sendSoap(xaddr, soapXml, ptzResponseListener, "status");
+            }
+        });
+    }
+
+    public void getStatus(String xaddr, String profileToken, String userName, String password, PtzResponseListener ptzResponseListener) {
+    	AuthXMLBuilder builder = new AuthXMLBuilder(userName, password);
+
+		String soapXml = builder.getAuthHeader() + builder.getPtzStatusBody(profileToken) + builder.getAuthEnd();
+		sendSoap(xaddr, soapXml, ptzResponseListener, "status");
+    }
+
     private void sendSoap(String urlStr, String soapXml, PtzResponseListener listener, String type) {
         RequestBody body = RequestBody.create(SOAP_MEDIA_TYPE, soapXml);
 
