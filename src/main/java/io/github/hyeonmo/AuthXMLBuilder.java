@@ -49,6 +49,7 @@ public class AuthXMLBuilder {
 		sb.append("xmlns:tptz=\"http://www.onvif.org/ver20/ptz/wsdl\" ");
 		sb.append("xmlns:wsse=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd\" ");
 		sb.append("xmlns:wsu=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd\" ");
+		sb.append("xmlns:tev=\"http://www.onvif.org/ver10/events/wsdl\" ");
 		sb.append("xmlns:trt=\"http://www.onvif.org/ver10/media/wsdl\" ");
 		sb.append("xmlns:timg=\"http://www.onvif.org/ver20/imaging/wsdl\">");
 		sb.append("<s:Header>");
@@ -164,6 +165,30 @@ public class AuthXMLBuilder {
 		sb.append("</tptz:GetPresets>");
 
 		return sb.toString();
+	}
+
+	public String getCreatePullPointSubscriptionBody(String filterTopic) {
+	    StringBuilder sb = new StringBuilder();
+
+	    sb.append("<tev:CreatePullPointSubscription>");
+	    sb.append("  <tev:Filter>");
+	    sb.append("    <tt:TopicExpression Dialect=\"http://www.onvif.org/ver10/tev/topics/Slice\">");
+	    sb.append(filterTopic);
+	    sb.append("</tt:TopicExpression>");
+	    sb.append("  </tev:Filter>");
+	    sb.append("  <tev:InitialTerminationTime>PT1H</tev:InitialTerminationTime>");
+	    sb.append("</tev:CreatePullPointSubscription>");
+
+	    return sb.toString();
+	}
+
+	public String getPullMessagesBody(int timeoutSeconds, int messageLimit) {
+	    StringBuilder sb = new StringBuilder();
+	    sb.append("<tev:PullMessages>");
+	    sb.append("  <tev:Timeout>PT").append(timeoutSeconds).append("S</tev:Timeout>");
+	    sb.append("  <tev:MessageLimit>").append(messageLimit).append("</tev:MessageLimit>");
+	    sb.append("</tev:PullMessages>");
+	    return sb.toString();
 	}
 
 }
