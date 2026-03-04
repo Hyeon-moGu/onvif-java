@@ -5,12 +5,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -21,6 +18,7 @@ import io.github.hyeonmo.OnvifUtils;
 import io.github.hyeonmo.models.OnvifServices;
 import io.github.hyeonmo.models.OnvifType;
 import io.github.hyeonmo.parsers.OnvifParser;
+import io.github.hyeonmo.parsers.XMLParserUtils;
 import io.github.hyeonmo.responses.OnvifResponse;
 
 /**
@@ -36,12 +34,10 @@ public class GetServicesParser extends OnvifParser<OnvifServices> {
         String xml = response.getXml();
 
         try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setNamespaceAware(true);
-            DocumentBuilder builder = factory.newDocumentBuilder();
+            DocumentBuilder builder = XMLParserUtils.getDocumentBuilder();
             Document doc = builder.parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
 
-            XPath xPath = XPathFactory.newInstance().newXPath();
+            XPath xPath = XMLParserUtils.getXPath();
             NodeList namespaceNodes = (NodeList) xPath.evaluate("//*[local-name()='Namespace']", doc, XPathConstants.NODESET);
 
             for (int i = 0; i < namespaceNodes.getLength(); i++) {
@@ -63,7 +59,7 @@ public class GetServicesParser extends OnvifParser<OnvifServices> {
                 }
             }
 
-        } catch (ParserConfigurationException | SAXException | IOException | XPathExpressionException e) {
+        } catch (SAXException | IOException | XPathExpressionException e) {
             e.printStackTrace();
         }
 

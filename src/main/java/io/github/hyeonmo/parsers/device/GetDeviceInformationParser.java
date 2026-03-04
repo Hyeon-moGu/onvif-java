@@ -7,12 +7,9 @@ import java.util.Iterator;
 
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -20,6 +17,7 @@ import org.xml.sax.SAXException;
 
 import io.github.hyeonmo.models.OnvifDeviceInformation;
 import io.github.hyeonmo.parsers.OnvifParser;
+import io.github.hyeonmo.parsers.XMLParserUtils;
 import io.github.hyeonmo.responses.OnvifResponse;
 
 public class GetDeviceInformationParser extends OnvifParser<OnvifDeviceInformation> {
@@ -36,12 +34,10 @@ public class GetDeviceInformationParser extends OnvifParser<OnvifDeviceInformati
 		String xml = response.getXml();
 
 		try {
-			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-			factory.setNamespaceAware(true);
-			DocumentBuilder builder = factory.newDocumentBuilder();
+			DocumentBuilder builder = XMLParserUtils.getDocumentBuilder();
 			Document doc = builder.parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
 
-			XPath xPath = XPathFactory.newInstance().newXPath();
+			XPath xPath = XMLParserUtils.getXPath();
 
 			xPath.setNamespaceContext(new DeviceNamespaceContext());
 
@@ -51,7 +47,7 @@ public class GetDeviceInformationParser extends OnvifParser<OnvifDeviceInformati
 			deviceInformation.setSerialNumber(getTagValue(doc, xPath, KEY_SERIAL_NUMBER));
 			deviceInformation.setHardwareId(getTagValue(doc, xPath, KEY_HARDWARE_ID));
 
-		} catch (ParserConfigurationException | SAXException | IOException | XPathExpressionException e) {
+		} catch (SAXException | IOException | XPathExpressionException e) {
 			e.printStackTrace();
 		}
 

@@ -5,12 +5,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -38,12 +35,10 @@ public class UPnPParser extends OnvifParser<UPnPDeviceInformation> {
         };
 
         try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setNamespaceAware(true);
-            DocumentBuilder builder = factory.newDocumentBuilder();
+            DocumentBuilder builder = XMLParserUtils.getDocumentBuilder();
             Document doc = builder.parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
 
-            XPath xPath = XPathFactory.newInstance().newXPath();
+            XPath xPath = XMLParserUtils.getXPath();
 
             for (String key : keys) {
                 Node node = (Node) xPath.evaluate("//*[local-name()='" + key + "']", doc, XPathConstants.NODE);
@@ -90,7 +85,7 @@ public class UPnPParser extends OnvifParser<UPnPDeviceInformation> {
                 }
             }
 
-        } catch (ParserConfigurationException | SAXException | IOException | XPathExpressionException e) {
+        } catch (SAXException | IOException | XPathExpressionException e) {
             e.printStackTrace();
         }
 

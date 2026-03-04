@@ -7,12 +7,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
@@ -22,6 +19,7 @@ import org.xml.sax.SAXException;
 
 import io.github.hyeonmo.models.OnvifMediaProfile;
 import io.github.hyeonmo.parsers.OnvifParser;
+import io.github.hyeonmo.parsers.XMLParserUtils;
 import io.github.hyeonmo.responses.OnvifResponse;
 
 /**
@@ -42,12 +40,10 @@ public class GetMediaProfilesParser extends OnvifParser<List<OnvifMediaProfile>>
         String xml = response.getXml();
 
         try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setNamespaceAware(true);
-            DocumentBuilder builder = factory.newDocumentBuilder();
+            DocumentBuilder builder = XMLParserUtils.getDocumentBuilder();
             Document doc = builder.parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
 
-            XPath xPath = XPathFactory.newInstance().newXPath();
+            XPath xPath = XMLParserUtils.getXPath();
 
             NodeList profileNodes = (NodeList) xPath.evaluate("//*[local-name()='" + KEY_PROFILES + "']", doc, XPathConstants.NODESET);
 
@@ -97,7 +93,7 @@ public class GetMediaProfilesParser extends OnvifParser<List<OnvifMediaProfile>>
                 profiles.add(new OnvifMediaProfile(name, token, videoSourceToken));
             }
 
-        } catch (ParserConfigurationException | SAXException | IOException | XPathExpressionException e) {
+        } catch (SAXException | IOException | XPathExpressionException e) {
             e.printStackTrace();
         }
 

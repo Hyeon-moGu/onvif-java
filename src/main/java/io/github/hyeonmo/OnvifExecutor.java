@@ -1,6 +1,5 @@
 package io.github.hyeonmo;
 
-
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -50,33 +49,42 @@ public class OnvifExecutor {
     public static final String TAG = OnvifExecutor.class.getSimpleName();
 
     //Attributes
-    private OkHttpClient client;
+    private OkHttpClient baseClient;
     private MediaType reqBodyType;
-    private RequestBody reqBody;
 
-    private Credentials credentials;
+    // Cache to hold OkHttpClients customized for specific devices to maintain thread-safety
+    private Map<String, OkHttpClient> deviceClients = new ConcurrentHashMap<>();
+
     private OnvifResponseListener onvifResponseListener;
 
     //Constructors
 
     OnvifExecutor(OnvifResponseListener onvifResponseListener) {
         this.onvifResponseListener = onvifResponseListener;
-        credentials = new Credentials("username", "password");
-        DigestAuthenticator authenticator = new DigestAuthenticator(credentials);
-        Map<String, CachingAuthenticator> authCache = new ConcurrentHashMap<>();
 
-        client = new OkHttpClient.Builder()
-                .connectTimeout(10000, TimeUnit.SECONDS)
-                .writeTimeout(100, TimeUnit.SECONDS)
-                .readTimeout(10000, TimeUnit.SECONDS)
-                .authenticator(new CachingAuthenticatorDecorator(authenticator, authCache))
-                .addInterceptor(new AuthenticationCacheInterceptor(authCache))
+        baseClient = new OkHttpClient.Builder()
+                .connectTimeout(10000, TimeUnit.MILLISECONDS)
+                .writeTimeout(100000, TimeUnit.MILLISECONDS)
+                .readTimeout(10000, TimeUnit.MILLISECONDS)
                 .build();
 
         reqBodyType = MediaType.parse("application/soap+xml; charset=utf-8;");
     }
 
     //Methods
+    private OkHttpClient getClientForDevice(OnvifDevice device) {
+        String key = device.getHostName() + ":" + device.getUsername() + ":" + device.getPassword();
+        return deviceClients.computeIfAbsent(key, k -> {
+            Credentials credentials = new Credentials(device.getUsername(), device.getPassword());
+            DigestAuthenticator authenticator = new DigestAuthenticator(credentials);
+            Map<String, CachingAuthenticator> authCache = new ConcurrentHashMap<>();
+
+            return baseClient.newBuilder()
+                    .authenticator(new CachingAuthenticatorDecorator(authenticator, authCache))
+                    .addInterceptor(new AuthenticationCacheInterceptor(authCache))
+                    .build();
+        });
+    }
 
     /**
      * Sends a request to the Onvif-compatible device.
@@ -85,11 +93,9 @@ public class OnvifExecutor {
      * @param request
      */
     void sendRequest(OnvifDevice device, OnvifRequest request) {
-        credentials.setUserName(device.getUsername());
-        credentials.setPassword(device.getPassword());
         AuthXMLBuilder builder = new AuthXMLBuilder(device.getUsername(), device.getPassword());
-        reqBody = RequestBody.create(reqBodyType, builder.getAuthHeader() + request.getXml() + builder.getAuthEnd());
-        performXmlRequest(device, request, buildOnvifRequest(device, request));
+        RequestBody reqBody = RequestBody.create(reqBodyType, builder.getAuthHeader() + request.getXml() + builder.getAuthEnd());
+        performXmlRequest(device, request, buildOnvifRequest(device, request, reqBody));
     }
 
     /**
@@ -97,6 +103,7 @@ public class OnvifExecutor {
      */
     void clear() {
         onvifResponseListener = null;
+        deviceClients.clear();
     }
 
     //Properties
@@ -108,6 +115,8 @@ public class OnvifExecutor {
     private void performXmlRequest(OnvifDevice device, OnvifRequest request, Request xmlRequest) {
         if (xmlRequest == null)
             return;
+
+        OkHttpClient client = getClientForDevice(device);
 
         client.newCall(xmlRequest)
                 .enqueue(new Callback() {
@@ -170,21 +179,23 @@ public class OnvifExecutor {
             			new GetSnapshotParser().parse(response));
             	break;
             default:
-                onvifResponseListener.onResponse(device, response);
+                if(onvifResponseListener != null) {
+                   onvifResponseListener.onResponse(device, response);
+                }
                 break;
         }
     }
 
-    private Request buildOnvifRequest(OnvifDevice device, OnvifRequest request) {
+    private Request buildOnvifRequest(OnvifDevice device, OnvifRequest request, RequestBody body) {
         return new Request.Builder()
                 .url(getUrlForRequest(device, request))
                 .addHeader("Content-Type", "text/xml; charset=utf-8")
-                .post(reqBody)
+                .post(body)
                 .build();
     }
 
     private String getUrlForRequest(OnvifDevice device, OnvifRequest request) {
-    	if(device.getBaseUrl().isEmpty()) return device.getHostName() + getPathForRequest(device, request);
+    	if(device.getBaseUrl() == null || device.getBaseUrl().isEmpty()) return device.getHostName() + getPathForRequest(device, request);
     	return device.getBaseUrl() + getPathForRequest(device, request);
     }
 
