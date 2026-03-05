@@ -17,17 +17,23 @@ public class AuthXMLBuilder {
 
 	private String userName;
 	private String password;
+	private long timeOffsetMs;
 
 	public AuthXMLBuilder(String userName, String password) {
+	    this(userName, password, 0);
+	}
+
+	public AuthXMLBuilder(String userName, String password, long timeOffsetMs) {
 		this.userName = userName;
 		this.password = password;
+		this.timeOffsetMs = timeOffsetMs;
 	}
 
 	public String getAuthHeader() {
 		byte[] nonceBytes = new byte[16];
 		new Random().nextBytes(nonceBytes);
 		String nonceBase64 = Base64.getEncoder().encodeToString(nonceBytes);
-		String created = DateTimeFormatter.ISO_INSTANT.format(Instant.now());
+		String created = DateTimeFormatter.ISO_INSTANT.format(Instant.now().plusMillis(timeOffsetMs));
 
 		String passwordDigest = "";
 		try {

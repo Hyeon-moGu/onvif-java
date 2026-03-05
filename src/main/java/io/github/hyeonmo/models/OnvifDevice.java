@@ -23,6 +23,7 @@ public class OnvifDevice extends Device {
     private String baseUrl;
     private String userName;
     private String password;
+    private long timeOffsetMs;
 
     //Constructors
     public OnvifDevice(String hostName) {
@@ -34,6 +35,7 @@ public class OnvifDevice extends Device {
         path = new OnvifServices();
         addresses = new ArrayList<>();
         scopes = new ArrayList<>();
+        timeOffsetMs = 0;
     }
 
     //Methods
@@ -72,6 +74,14 @@ public class OnvifDevice extends Device {
 
     public void setBaseUrl(String baseUrl) {
     	this.baseUrl = baseUrl;
+    }
+
+    public long getTimeOffsetMs() {
+        return timeOffsetMs;
+    }
+
+    public void setTimeOffsetMs(long timeOffsetMs) {
+        this.timeOffsetMs = timeOffsetMs;
     }
 
     @Override

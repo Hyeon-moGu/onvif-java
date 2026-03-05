@@ -20,6 +20,7 @@ import io.github.hyeonmo.parsers.device.GetServicesParser;
 import io.github.hyeonmo.parsers.media.GetMediaProfilesParser;
 import io.github.hyeonmo.parsers.media.GetMediaStreamParser;
 import io.github.hyeonmo.parsers.media.GetSnapshotParser;
+import io.github.hyeonmo.parsers.device.GetSystemDateAndTimeParser;
 import io.github.hyeonmo.requests.OnvifRequest;
 import io.github.hyeonmo.requests.device.GetCapabilitiesRequest;
 import io.github.hyeonmo.requests.device.GetDeviceInformationRequest;
@@ -27,6 +28,7 @@ import io.github.hyeonmo.requests.device.GetServicesRequest;
 import io.github.hyeonmo.requests.media.GetMediaProfilesRequest;
 import io.github.hyeonmo.requests.media.GetMediaStreamRequest;
 import io.github.hyeonmo.requests.media.GetSnapshotRequest;
+import io.github.hyeonmo.requests.device.GetSystemDateAndTimeRequest;
 import io.github.hyeonmo.responses.OnvifResponse;
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -93,7 +95,7 @@ public class OnvifExecutor {
      * @param request
      */
     void sendRequest(OnvifDevice device, OnvifRequest request) {
-        AuthXMLBuilder builder = new AuthXMLBuilder(device.getUsername(), device.getPassword());
+        AuthXMLBuilder builder = new AuthXMLBuilder(device.getUsername(), device.getPassword(), device.getTimeOffsetMs());
         RequestBody reqBody = RequestBody.create(reqBodyType, builder.getAuthHeader() + request.getXml() + builder.getAuthEnd());
         performXmlRequest(device, request, buildOnvifRequest(device, request, reqBody));
     }
@@ -178,6 +180,10 @@ public class OnvifExecutor {
             	snapshotRequest.getListener().onMediaSnapshotReceived(device, snapshotRequest.getMediaProfile(),
             			new GetSnapshotParser().parse(response));
             	break;
+            case GET_SYSTEM_DATE_AND_TIME:
+                ((GetSystemDateAndTimeRequest) response.request()).getListener().onSystemDateAndTimeReceived(device,
+                        new GetSystemDateAndTimeParser().parse(response));
+                break;
             default:
                 if(onvifResponseListener != null) {
                    onvifResponseListener.onResponse(device, response);
@@ -213,6 +219,8 @@ public class OnvifExecutor {
             	return device.getPath().getServicesPath();
             case GET_SNAPSHOT_URI:
             	return device.getPath().getServicesPath();
+            case GET_SYSTEM_DATE_AND_TIME:
+                return device.getPath().getDeviceInformationPath();
         }
 
         return device.getPath().getServicesPath();

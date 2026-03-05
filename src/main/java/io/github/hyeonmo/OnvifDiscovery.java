@@ -6,6 +6,7 @@ import java.net.DatagramSocket;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InterfaceAddress;
+import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.security.SecureRandom;
@@ -132,7 +133,7 @@ public class OnvifDiscovery {
                     OnvifPacket packet = createDiscoveryPacket();
                     byte[] data = packet.getData();
 
-                    DatagramSocket client = new DatagramSocket();
+                    DatagramSocket client = new DatagramSocket(new InetSocketAddress(address, 0));
 
                     DiscoveryThread thread = new DiscoveryThread(client, discoveryTimeout, mode, new DiscoveryCallback() {
 

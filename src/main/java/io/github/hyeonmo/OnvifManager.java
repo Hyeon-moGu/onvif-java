@@ -4,6 +4,7 @@ import io.github.hyeonmo.listeners.OnvifResponseListener;
 import io.github.hyeonmo.listeners.device.OnvifCapabilitiesListener;
 import io.github.hyeonmo.listeners.device.OnvifDeviceInformationListener;
 import io.github.hyeonmo.listeners.device.OnvifServicesListener;
+import io.github.hyeonmo.listeners.device.OnvifSystemDateAndTimeListener;
 import io.github.hyeonmo.listeners.media.OnvifMediaProfilesListener;
 import io.github.hyeonmo.listeners.media.OnvifMediaStreamURIListener;
 import io.github.hyeonmo.listeners.media.OnvifSnapshotURIListener;
@@ -13,6 +14,7 @@ import io.github.hyeonmo.requests.OnvifRequest;
 import io.github.hyeonmo.requests.device.GetCapabilitiesRequest;
 import io.github.hyeonmo.requests.device.GetDeviceInformationRequest;
 import io.github.hyeonmo.requests.device.GetServicesRequest;
+import io.github.hyeonmo.requests.device.GetSystemDateAndTimeRequest;
 import io.github.hyeonmo.requests.media.GetMediaProfilesRequest;
 import io.github.hyeonmo.requests.media.GetMediaStreamRequest;
 import io.github.hyeonmo.requests.media.GetSnapshotRequest;
@@ -45,6 +47,11 @@ public class OnvifManager implements OnvifResponseListener {
     //Methods
     public void getServices(OnvifDevice device, OnvifServicesListener listener) {
         OnvifRequest request = new GetServicesRequest(listener);
+        executor.sendRequest(device, request);
+    }
+
+    public void getSystemDateAndTime(OnvifDevice device, OnvifSystemDateAndTimeListener listener) {
+        OnvifRequest request = new GetSystemDateAndTimeRequest(listener);
         executor.sendRequest(device, request);
     }
 
