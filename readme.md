@@ -1,18 +1,12 @@
-# ONVIF Java Client: **Asynchronous Library** for **IP Camera Control**
+# ONVIF Java Async Client
 
-This is a **lightweight, asynchronous Java client library** designed to simplify communication with **ONVIF-compliant IP cameras** and network video devices. By handling the complexity of the SOAP/XML protocol internally, this library allows developers to integrate robust camera control (PTZ, Imaging, Device Management) into their Java applications using simple, non-blocking method calls.
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.hyeon-mogu/onvif-java.svg?label=Maven%20Central)](https://search.maven.org/artifact/io.github.hyeon-mogu/onvif-java)
 
-**Beyond Simple Control**: While the library is designed for simple control using OnvifDevice objects, you also have the flexibility to make direct requests using a device's XAddr (web service address) and Token information when necessary.
+A lightweight, asynchronous Java library designed to simplify the control of ONVIF-compliant IP cameras.
 
-**Asynchronous Processing**:
-A core design principle of this library is non-blocking asynchronous operation.
+This library abstracts the complexity of the SOAP/XML protocol into simple, non-blocking Java APIs. It supports essential features such as device discovery, secure authentication, real-time PTZ control, and imaging parameter adjustments.
 
----
-
-### ✅ Tested On
-* **Vendor:** UNIVIEW
-* **Model:** IPC6222ER-X20
-* **Firmware:** IPC_HCMN1102-R5028P07D1603C02
+Designed for flexibility, operations can be performed seamlessly using managed `OnvifDevice` objects or by providing direct endpoints and credentials.
 
 ---
 
@@ -24,224 +18,69 @@ A core design principle of this library is non-blocking asynchronous operation.
 <dependency>
     <groupId>io.github.hyeon-mogu</groupId>
     <artifactId>onvif-java</artifactId>
-    <version>1.0.2</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 
 ### Gradle:
 
 ```Java
-implementation group: 'io.github.hyeon-mogu', name: 'onvif-java', version: '1.0.2'
+implementation group: 'io.github.hyeon-mogu', name: 'onvif-java', version: '1.1.0'
 ```
 
 ---
 
 ## Key Features
 
-- **Standard WS-Security Authentication**: Securely authenticates using the WS-Security (Username Token Profile) Password Digest method, adhering to the strict ONVIF standard.
-
-- **Asynchronous & Non-Blocking**: Non-blocking callback mechanism ensures application responsiveness during network operations.
-
-- **ONVIF Device Discovery**: Automatically detects and connects to ONVIF-compliant IP cameras on the local network.
-
-- **Comprehensive PTZ Control**: Full support for real-time Pan/Tilt/Zoom movements and Stop functionality.
-
-- **PTZ Preset Management**: Comprehensive preset management including saving positions (Save), moving to saved positions (Goto), retrieving the full list of presets (GetPresets), and deleting existing presets (Remove).
-
-- **PTZ Status Inquiry**: Retrieve the camera's current PTZ position, move status (e.g., IDLE/MOVING), and current UTC time.
-
-- **Advanced Imaging Control**: Set and retrieve detailed camera parameters like Brightness, Exposure, Focus, and WDR.
-
-- **Device & Media Management**: Retrieve essential information, including Device Information, Media Profiles, and Snapshot URIs.
+- **WS-Security Authentication**: Simple Username Token Profile Password Digest authentication.
+- **Automated Clock Sync**: Automatically handles camera time offsets to prevent authentication errors.
+- **Asynchronous & Non-Blocking**: Uses callbacks for responsive network operations without blocking the main thread.
+- **Device Discovery**: Detects ONVIF devices on the local network via multicast WS-Discovery.
+- **PTZ (Pan/Tilt/Zoom) Control**: Basic movement, status retrieval, and preset management.
+- **Imaging Settings**: Read and update basic imaging parameters (Brightness, Exposure Modes, Focus, etc).
+- **Media Information**: Fetch RTSP Stream URIs and JPEG Snapshot links seamlessly.
 
 ---
 
-## Code Example
+## Quick Start (Test Application)
 
-### DiscoveryManager
+Instead of setting up individual managers manually, you can explore all read-only capabilities of your camera instantly using the provided `OnvifTester.java` script.
 
-```java
-DiscoveryManager discoveryManager = new DiscoveryManager();
-discoveryManager.setDiscoveryTimeout(30000); // Set timeout (30 seconds)
+The tester automatically discovers cameras on your network, synchronizes the time (for WS-Security), and swiftly retrieves essential data (RTSP, Snapshot, Profiles, Capabilities, PTZ Status, Presets, and Imaging Settings).
 
-discoveryManager.discover(new DiscoveryListener() {
-	@Override
-	public void onDiscoveryStarted() {
-		logger.info("Discovery started...");
-	}
+### Example
 
-	@Override
-	public void onDevicesFound(List<Device> devices) {
-		for(Device dv : devices) {
-			logger.info("Found Device: {}", dv.getHostName());
-		}
-	}
-    // Error handling goes in onError()
-});
+```text
+========== ONVIF Device Discovery Started ==========
+Scanning network... (Max 20 seconds)
+
+Scan complete! Found 1 devices.
+
+------------------------------------------------
+Proceeding with single camera test...
+Target IP: 192.168.1.x
+Base URL: http://192.168.1.x:8080
+Username: admin
+------------------------------------------------
+[Success] Camera Time: Thu Jan 01 01:00:00 UTC 2026
+[Applied] Time Offset (Clock Sync): -1200ms
+[Success] Device Info: Model=IPCamera, Manufacturer=IPC Professional, Firmware=ONVIF_V3.0.0.20170510
+[Success] Capabilities Retrieved.
+[Success] Found 4 Media Profiles
+  - Profile: proname_ch0001 (Token: protoken_ch0001)
+  - Profile: proname_ch0002 (Token: protoken_ch0002)
+  - Profile: proname_ch0003 (Token: protoken_ch0003)
+  - Profile: new profile (Token: protoken_ch0004)
+[Success] RTSP Stream URI: rtsp://192.168.1.x:554/1/1
+[Success] Snapshot JPEG URI: http://192.168.1.x/jpeg/pic_type00_01.jpg
+[Success] PTZ Status (Coordinates): Position: (Pan: -1, Tilt: -1.25806451, Zoom: 0), MoveStatus: (PanTilt: IDLE, Zoom: IDLE), Time: 2026-01-01T01:00:00Z
+[Success] PTZ Presets List: Preset(1: home), Preset(2: door)
+[Success] Imaging Settings: {brightness=50.0, colorSaturation=50.0, contrast=50.0, exposureTime=0.0, maxExposureTime=83333.0, minGain=0.0, maxGain=16.0, autofocusMode='AUTO'}
+
+[Test Complete] Terminating JVM cleanly...
 ```
 
----
-
-### OnvifManager
-
-```java
-OnvifManager onvifManager = new OnvifManager();
-
-onvifManager.getCapabilities(onvifDevice, new OnvifCapabilitiesListener() {
-	
-	@Override
-	public void onDeviceCapabilitiesReceived(OnvifDevice onvifDevice, OnvifCapabilities onvifCapabilities) {
-		logger.info("Device XADDR: {}", onvifCapabilities.getXaddr());
-		logger.info("Device MaxProfiles: {}", onvifCapabilities.getMaximumNumberOfProfiles());
-		
-	}
-});
-
-onvifManager.getMediaProfiles(onvifDevice, new OnvifMediaProfilesListener() {
-
-	@Override
-	public void onMediaProfilesReceived(OnvifDevice device, List<OnvifMediaProfile> mediaProfiles) {
-		OnvifMediaProfile omp = mediaProfiles.get(0);	//example
-
-		onvifManager.getSnapshotURI(device, omp, new OnvifSnapshotURIListener() {
-
-			@Override
-			public void onMediaSnapshotReceived(OnvifDevice device, OnvifMediaProfile profile, String uri) {
-				logger.info("==== Snapshot Uri: {}", uri);
-			}
-		});
-	}
-});
-
-// GetDeviceInformation, GetMediaStreamURI, GetServices, etc..
-```
-
----
-
-### PTZManager(PTZ operation)
-
-```java
-PtzManager ptzManager = new PtzManager();
-
-// Pan/tilt
-ptzManager.move(onvifDevice, PtzType.UP_RIGHT, new PtzResponseListener() {
-	
-	@Override
-	public void onResponse(PtzResponse ptzResponse) {
-		logger.info("PTZ result: {}", ptzResponse.getMessage());
-		logger.info("PTZ boolean: {}", ptzResponse.isSuccess());
-		// etc . .
-	}
-});
-
-// Zoom
-ptzManager.move(onvifDevice, PtzType.ZOOM_IN, new PtzResponseListener() {
-	
-	@Override
-	public void onResponse(PtzResponse ptzResponse) {
-		// ptzResponse..
-	}
-});
-
-// Stop
-ptzManager.stop(onvifDevice, new PtzResponseListener() {
-	
-	@Override
-	public void onResponse(PtzResponse ptzResponse) {
-		// ptzResponse..
-	}
-});
-```
-
----
-
-### PTZManager(Preset operation)
-
-```java
-PresetCommand pcGet = new PresetCommand(PresetAction.GET, null);
-ptzManager.preset(onvifDevice, pcGet, new PtzResponseListener() {
-
-	@Override
-	public void onResponse(PtzResponse ptzResponse) {
-		logger.info("Preset GET result: {}", ptzResponse.getMessage()); 
-	}
-});
-
-PresetCommand pcSave = new PresetCommand(PresetAction.SAVE, "example");
-ptzManager.preset(onvifDevice, pcSave, new PtzResponseListener() {
-
-	@Override
-	public void onResponse(PtzResponse ptzResponse) {
-		logger.info("Preset SAVE result xml: {}", ptzResponse.getRawXml());
-		// etc . .
-	}
-});
-
-PresetCommand pcMove = new PresetCommand(PresetAction.MOVE, "example");
-ptzManager.preset(onvifDevice, pcMove, new PtzResponseListener() {
-
-	@Override
-	public void onResponse(PtzResponse ptzResponse) {
-		logger.info("Preset MOVE result xml: {}", ptzResponse.getRawXml());
-		// etc . .
-	}
-});
-```
-
----
-
-### PTZManager(Status Inquiry)
-
-```java
-PtzManager ptzManager = new PtzManager();
-
-ptzManager.getStatus(onvifDevice, new PtzResponseListener() {
-	
-	@Override
-	public void onResponse(PtzResponse ptzResponse) {
-		logger.info("PTZ Status result: {}", ptzResponse.getMessage());
-		// Message: Position: (Pan: 0.1, Tilt: 0.2, Zoom: 0.0), MoveStatus: (PanTilt: IDLE, Zoom: IDLE), Time: ...
-	}
-});
-```
-
----
-
-### ImagingManager
-
-```java
-ImagingManager imagingManager = new ImagingManager();
-
-ImagingSettings settingsToUpdate = new ImagingSettings();
-settingsToUpdate.setBrightness(128); // Set a specific value
-settingsToUpdate.setExposureMode("AUTO"); // Set an enumeration value
-
-// Set Imaging Settings
-imagingManager.setImagingSettings(onvifDevice, settingsToUpdate, new ImagingSettingRequestListener() {
-	@Override
-	public void onResponse(ImagingResponse imagingResponse) {
-		logger.info("Imaging settings updated result xml: {}", imagingResponse.getXml());
-	}
-});
-
-// Get Imaging Settings
-imagingManager.getImagingSettings(onvifDevice, new ImagingSettingsListener() {
-
-	@Override
-	public void onResponse(OnvifDevice onvifDevice, ImagingSettings imagingSettings) {
-		logger.info("All ImagingSettings: {}", imagingSettings.toString());
-	}
-});
-
-// Continuous Focus
-imagingManager.focusContinuousMove(onvifDevice, 0.5, new ImagingFocusResponseListener() {
-	
-	@Override
-	public void onResponse(ImagingResponse imagingResponse) {
-		logger.info("Focus boolean: {}", imagingResponse.isSuccess());
-	}
-});
-```
+For detailed usage on PTZ controls and Imaging settings, please refer to the source code of the manager classes (`OnvifManager`, `PtzManager`, `ImagingManager`).
 
 ---
  
@@ -249,3 +88,10 @@ imagingManager.focusContinuousMove(onvifDevice, 0.5, new ImagingFocusResponseLis
 
 - **Java 8 or higher**  
 - An **ONVIF-compliant network camera**  
+
+---
+
+### Tested On
+* **Vendor:** UNIVIEW
+* **Model:** IPC6222ER-X20
+* **Firmware:** ONVIF_V3.0.0.20170510
