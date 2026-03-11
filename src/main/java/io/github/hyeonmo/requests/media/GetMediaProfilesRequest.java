@@ -1,32 +1,19 @@
 package io.github.hyeonmo.requests.media;
 
-import io.github.hyeonmo.listeners.media.OnvifMediaProfilesListener;
 import io.github.hyeonmo.models.OnvifType;
 import io.github.hyeonmo.requests.OnvifRequest;
-
 
 /**
  * Created by Tomas Verhelst on 04/09/2018.
  * Copyright (c) 2018 TELETASK BVBA. All rights reserved.
+ * Modified for v2.0 - callback removed.
  */
 public class GetMediaProfilesRequest implements OnvifRequest {
 
-    //Constants
     public static final String TAG = GetMediaProfilesRequest.class.getSimpleName();
 
-    //Attributes
-    private final OnvifMediaProfilesListener listener;
-
-    //Constructors
-    public GetMediaProfilesRequest(OnvifMediaProfilesListener listener) {
+    public GetMediaProfilesRequest() {
         super();
-        this.listener = listener;
-    }
-
-    //Properties
-
-    public OnvifMediaProfilesListener getListener() {
-        return listener;
     }
 
     @Override
@@ -38,5 +25,4 @@ public class GetMediaProfilesRequest implements OnvifRequest {
     public OnvifType getType() {
         return OnvifType.GET_MEDIA_PROFILES;
     }
-
 }

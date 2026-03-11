@@ -1,48 +1,38 @@
 package io.github.hyeonmo.requests.imaging;
 
-import io.github.hyeonmo.listeners.imaging.ImagingSettingsListener;
 import io.github.hyeonmo.models.imaging.ImagingType;
 
 /**
  * Created by Hyeonmo Gu on 24/09/2025.
+ * Modified for v2.0 - callback removed.
  */
-public class GetImagingSettingsRequest implements ImagingRequest{
+public class GetImagingSettingsRequest implements ImagingRequest {
 
-    //Constants
     public static final String TAG = GetImagingSettingsRequest.class.getSimpleName();
 
-    //Attributes
-    private final ImagingSettingsListener listener;
-    private String token;
-    private String xaddr;
+    private final String token;
+    private final String xaddr;
 
-    public GetImagingSettingsRequest(ImagingSettingsListener listener, String token, String xaddr) {
+    public GetImagingSettingsRequest(String token, String xaddr) {
         super();
-        this.listener = listener;
         this.token = token;
         this.xaddr = xaddr;
     }
 
-    public ImagingSettingsListener getListener() {
-        return listener;
+    @Override
+    public String getXml() {
+        return "<timg:GetImagingSettings>" +
+                "<timg:VideoSourceToken>" + token + "</timg:VideoSourceToken>" +
+                "</timg:GetImagingSettings>";
     }
 
-	@Override
-	public String getXml() {
-		return "<timg:GetImagingSettings>" +
-				"<timg:VideoSourceToken>" + token + "</timg:VideoSourceToken>" +
-				"</timg:GetImagingSettings>";
-	}
+    @Override
+    public String getXAddr() {
+        return xaddr;
+    }
 
-	@Override
-	public String getXAddr() {
-		return xaddr;
-	}
-
-	@Override
-	public ImagingType getImagingType() {
-		return ImagingType.GET_IMAGING_SETTINGS;
-	}
-
-
+    @Override
+    public ImagingType getImagingType() {
+        return ImagingType.GET_IMAGING_SETTINGS;
+    }
 }

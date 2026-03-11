@@ -1,15 +1,12 @@
 package io.github.hyeonmo;
 
-import io.github.hyeonmo.listeners.OnvifResponseListener;
-import io.github.hyeonmo.listeners.device.OnvifCapabilitiesListener;
-import io.github.hyeonmo.listeners.device.OnvifDeviceInformationListener;
-import io.github.hyeonmo.listeners.device.OnvifServicesListener;
-import io.github.hyeonmo.listeners.device.OnvifSystemDateAndTimeListener;
-import io.github.hyeonmo.listeners.media.OnvifMediaProfilesListener;
-import io.github.hyeonmo.listeners.media.OnvifMediaStreamURIListener;
-import io.github.hyeonmo.listeners.media.OnvifSnapshotURIListener;
+import java.util.concurrent.CompletableFuture;
+
+import io.github.hyeonmo.models.OnvifCapabilities;
 import io.github.hyeonmo.models.OnvifDevice;
+import io.github.hyeonmo.models.OnvifDeviceInformation;
 import io.github.hyeonmo.models.OnvifMediaProfile;
+import io.github.hyeonmo.models.OnvifServices;
 import io.github.hyeonmo.requests.OnvifRequest;
 import io.github.hyeonmo.requests.device.GetCapabilitiesRequest;
 import io.github.hyeonmo.requests.device.GetDeviceInformationRequest;
@@ -20,92 +17,65 @@ import io.github.hyeonmo.requests.media.GetMediaStreamRequest;
 import io.github.hyeonmo.requests.media.GetSnapshotRequest;
 import io.github.hyeonmo.responses.OnvifResponse;
 
-
 /**
- * Created by Tomas Verhelst on 03/09/2018.
- * Copyright (c) 2018 TELETASK BVBA. All rights reserved.
+ * Executes core ONVIF requests returning CompletableFutures for easy chaining.
+ *
+ * Modified by Hyeonmo Gu for v2.0
  */
-public class OnvifManager implements OnvifResponseListener {
+public class OnvifManager {
 
-    //Constants
     public final static String TAG = OnvifManager.class.getSimpleName();
 
-    //Attributes
     private OnvifExecutor executor;
-    private OnvifResponseListener onvifResponseListener;
 
-    //Constructors
     public OnvifManager() {
-        this(null);
+        executor = new OnvifExecutor();
     }
 
-    private OnvifManager(OnvifResponseListener onvifResponseListener) {
-        this.onvifResponseListener = onvifResponseListener;
-        executor = new OnvifExecutor(this);
+    public CompletableFuture<OnvifServices> getServices(OnvifDevice device) {
+        OnvifRequest request = new GetServicesRequest();
+        return executor.<OnvifServices>sendRequest(device, request)
+                .thenApply(services -> {
+                    device.setPath(services);
+                    return services;
+                });
     }
 
-    //Methods
-    public void getServices(OnvifDevice device, OnvifServicesListener listener) {
-        OnvifRequest request = new GetServicesRequest(listener);
-        executor.sendRequest(device, request);
+    public CompletableFuture<java.util.Date> getSystemDateAndTime(OnvifDevice device) {
+        OnvifRequest request = new GetSystemDateAndTimeRequest();
+        return executor.sendRequest(device, request);
     }
 
-    public void getSystemDateAndTime(OnvifDevice device, OnvifSystemDateAndTimeListener listener) {
-        OnvifRequest request = new GetSystemDateAndTimeRequest(listener);
-        executor.sendRequest(device, request);
+    public CompletableFuture<OnvifDeviceInformation> getDeviceInformation(OnvifDevice device) {
+        OnvifRequest request = new GetDeviceInformationRequest();
+        return executor.sendRequest(device, request);
     }
 
-    public void getDeviceInformation(OnvifDevice device, OnvifDeviceInformationListener listener) {
-        OnvifRequest request = new GetDeviceInformationRequest(listener);
-        executor.sendRequest(device, request);
+    public CompletableFuture<java.util.List<OnvifMediaProfile>> getMediaProfiles(OnvifDevice device) {
+        OnvifRequest request = new GetMediaProfilesRequest();
+        return executor.sendRequest(device, request);
     }
 
-    public void getMediaProfiles(OnvifDevice device, OnvifMediaProfilesListener listener) {
-        OnvifRequest request = new GetMediaProfilesRequest(listener);
-        executor.sendRequest(device, request);
+    public CompletableFuture<String> getMediaStreamURI(OnvifDevice device, OnvifMediaProfile profile) {
+        OnvifRequest request = new GetMediaStreamRequest(profile);
+        return executor.sendRequest(device, request);
     }
 
-    public void getMediaStreamURI(OnvifDevice device, OnvifMediaProfile profile, OnvifMediaStreamURIListener listener) {
-        OnvifRequest request = new GetMediaStreamRequest(profile, listener);
-        executor.sendRequest(device, request);
+    public CompletableFuture<OnvifCapabilities> getCapabilities(OnvifDevice device) {
+        OnvifRequest request = new GetCapabilitiesRequest();
+        return executor.sendRequest(device, request);
     }
 
-    public void getCapabilities(OnvifDevice device, OnvifCapabilitiesListener listener) {
-    	OnvifRequest request = new GetCapabilitiesRequest(listener);
-    	executor.sendRequest(device, request);
+    public CompletableFuture<String> getSnapshotURI(OnvifDevice device, OnvifMediaProfile profile) {
+        OnvifRequest request = new GetSnapshotRequest(profile);
+        return executor.sendRequest(device, request);
     }
 
-    public void sendOnvifRequest(OnvifDevice device, OnvifRequest request) {
-        executor.sendRequest(device, request);
+    public <T> CompletableFuture<T> sendOnvifRequest(OnvifDevice device, OnvifRequest request) {
+        return executor.sendRequest(device, request);
     }
 
-    public void setOnvifResponseListener(OnvifResponseListener onvifResponseListener) {
-        this.onvifResponseListener = onvifResponseListener;
-    }
-
-    public void getSnapshotURI(OnvifDevice device, OnvifMediaProfile profile, OnvifSnapshotURIListener listener) {
-    	OnvifRequest request = new GetSnapshotRequest(profile, listener);
-    	executor.sendRequest(device, request);
-    }
-
-    /**
-     * Clear up the resources.
-     */
     public void destroy() {
-        onvifResponseListener = null;
         executor.clear();
     }
-
-    @Override
-    public void onResponse(OnvifDevice onvifDevice, OnvifResponse response) {
-        if (onvifResponseListener != null)
-            onvifResponseListener.onResponse(onvifDevice, response);
-    }
-
-    @Override
-    public void onError(OnvifDevice onvifDevice, int errorCode, String errorMessage) {
-        if (onvifResponseListener != null)
-            onvifResponseListener.onError(onvifDevice, errorCode, errorMessage);
-    }
-
 }

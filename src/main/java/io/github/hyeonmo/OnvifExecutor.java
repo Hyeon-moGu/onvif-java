@@ -2,6 +2,7 @@ package io.github.hyeonmo;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -11,9 +12,13 @@ import com.burgstaller.okhttp.digest.CachingAuthenticator;
 import com.burgstaller.okhttp.digest.Credentials;
 import com.burgstaller.okhttp.digest.DigestAuthenticator;
 
-import io.github.hyeonmo.listeners.OnvifResponseListener;
+import io.github.hyeonmo.exceptions.OnvifExceptionFactory;
 import io.github.hyeonmo.models.OnvifDevice;
 import io.github.hyeonmo.models.OnvifServices;
+import io.github.hyeonmo.models.OnvifCapabilities;
+import io.github.hyeonmo.models.OnvifDeviceInformation;
+import io.github.hyeonmo.models.OnvifMediaProfile;
+import io.github.hyeonmo.models.imaging.ImagingSettings;
 import io.github.hyeonmo.parsers.device.GetCapabilitiesParser;
 import io.github.hyeonmo.parsers.device.GetDeviceInformationParser;
 import io.github.hyeonmo.parsers.device.GetServicesParser;
@@ -21,6 +26,7 @@ import io.github.hyeonmo.parsers.media.GetMediaProfilesParser;
 import io.github.hyeonmo.parsers.media.GetMediaStreamParser;
 import io.github.hyeonmo.parsers.media.GetSnapshotParser;
 import io.github.hyeonmo.parsers.device.GetSystemDateAndTimeParser;
+import io.github.hyeonmo.parsers.imaging.GetImagingSettingsParser;
 import io.github.hyeonmo.requests.OnvifRequest;
 import io.github.hyeonmo.requests.device.GetCapabilitiesRequest;
 import io.github.hyeonmo.requests.device.GetDeviceInformationRequest;
@@ -40,30 +46,19 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 
 /**
- * Created by Tomas Verhelst on 03/09/2018.
- * Copyright (c) 2018 TELETASK BVBA. All rights reserved.
+ * Executes ONVIF SOAP Requests asynchronously, returning CompletableFutures.
  *
- * Modified by Hyeonmo Gu on 29/09/2025
+ * Modified by Hyeonmo Gu for v2.0
  */
 public class OnvifExecutor {
 
-    //Constants
     public static final String TAG = OnvifExecutor.class.getSimpleName();
 
-    //Attributes
     private OkHttpClient baseClient;
     private MediaType reqBodyType;
-
-    // Cache to hold OkHttpClients customized for specific devices to maintain thread-safety
     private Map<String, OkHttpClient> deviceClients = new ConcurrentHashMap<>();
 
-    private OnvifResponseListener onvifResponseListener;
-
-    //Constructors
-
-    OnvifExecutor(OnvifResponseListener onvifResponseListener) {
-        this.onvifResponseListener = onvifResponseListener;
-
+    public OnvifExecutor() {
         baseClient = new OkHttpClient.Builder()
                 .connectTimeout(10000, TimeUnit.MILLISECONDS)
                 .writeTimeout(100000, TimeUnit.MILLISECONDS)
@@ -73,11 +68,10 @@ public class OnvifExecutor {
         reqBodyType = MediaType.parse("application/soap+xml; charset=utf-8;");
     }
 
-    //Methods
-    private OkHttpClient getClientForDevice(OnvifDevice device) {
-        String key = device.getHostName() + ":" + device.getUsername() + ":" + device.getPassword();
+    private OkHttpClient getClientForDevice(String hostName, String username, String password) {
+        String key = hostName + ":" + username + ":" + password;
         return deviceClients.computeIfAbsent(key, k -> {
-            Credentials credentials = new Credentials(device.getUsername(), device.getPassword());
+            Credentials credentials = new Credentials(username, password);
             DigestAuthenticator authenticator = new DigestAuthenticator(credentials);
             Map<String, CachingAuthenticator> authCache = new ConcurrentHashMap<>();
 
@@ -88,142 +82,98 @@ public class OnvifExecutor {
         });
     }
 
-    /**
-     * Sends a request to the Onvif-compatible device.
-     *
-     * @param device
-     * @param request
-     */
-    void sendRequest(OnvifDevice device, OnvifRequest request) {
-        AuthXMLBuilder builder = new AuthXMLBuilder(device.getUsername(), device.getPassword(), device.getTimeOffsetMs());
+    public <T> CompletableFuture<T> sendRequest(OnvifDevice device, OnvifRequest request) {
+    	return sendRequest(device.getHostName(), device.getBaseUrl(), device.getUsername(), device.getPassword(), device.getTimeOffsetMs(), getPathForRequest(device, request), request);
+    }
+    
+    public <T> CompletableFuture<T> sendRequest(String hostName, String baseUrl, String username, String password, long timeOffsetMs, String path, OnvifRequest request) {
+        CompletableFuture<T> future = new CompletableFuture<>();
+        
+        AuthXMLBuilder builder = new AuthXMLBuilder(username, password, timeOffsetMs);
         RequestBody reqBody = RequestBody.create(reqBodyType, builder.getAuthHeader() + request.getXml() + builder.getAuthEnd());
-        performXmlRequest(device, request, buildOnvifRequest(device, request, reqBody));
-    }
+        
+        String url = (baseUrl == null || baseUrl.isEmpty()) ? hostName + path : baseUrl + path;
+        
+        Request xmlRequest = new Request.Builder()
+                .url(url)
+                .addHeader("Content-Type", "text/xml; charset=utf-8")
+                .post(reqBody)
+                .build();
 
-    /**
-     * Clears up the resources.
-     */
-    void clear() {
-        onvifResponseListener = null;
-        deviceClients.clear();
-    }
+        OkHttpClient client = getClientForDevice(hostName, username, password);
 
-    //Properties
-
-    public void setOnvifResponseListener(OnvifResponseListener onvifResponseListener) {
-        this.onvifResponseListener = onvifResponseListener;
-    }
-
-    private void performXmlRequest(OnvifDevice device, OnvifRequest request, Request xmlRequest) {
-        if (xmlRequest == null)
-            return;
-
-        OkHttpClient client = getClientForDevice(device);
-
-        client.newCall(xmlRequest)
-                .enqueue(new Callback() {
-
-                    @Override
-                    public void onResponse(Call call, Response xmlResponse) throws IOException {
-
-                        OnvifResponse response = new OnvifResponse(request);
-                        ResponseBody xmlBody = xmlResponse.body();
-
-                        if (xmlResponse.code() == 200 && xmlBody != null) {
-                            response.setSuccess(true);
-                            response.setXml(xmlBody.string());
-                            parseResponse(device, response);
-                            return;
-                        }
-
-                        String errorMessage = "";
-                        if (xmlBody != null)
-                            errorMessage = xmlBody.string();
-
-                        onvifResponseListener.onError(device, xmlResponse.code(), errorMessage);
+        client.newCall(xmlRequest).enqueue(new Callback() {
+            @Override
+            public void onResponse(Call call, Response xmlResponse) throws IOException {
+                OnvifResponse response = new OnvifResponse(request);
+                ResponseBody xmlBody = xmlResponse.body();
+                
+                if (xmlResponse.code() == 200 && xmlBody != null) {
+                    response.setSuccess(true);
+                    response.setXml(xmlBody.string());
+                    try {
+                    	T result = parseResponseAsFutureResult(response);
+                        future.complete(result);
+                    } catch (Exception e) {
+                    	future.completeExceptionally(e);
                     }
+                } else {
+                    String errorMessage = xmlBody != null ? xmlBody.string() : "";
+                    future.completeExceptionally(OnvifExceptionFactory.fromHttpError(xmlResponse.code(), errorMessage));
+                }
+            }
 
-                    @Override
-                    public void onFailure(Call call, IOException e) {
-                        onvifResponseListener.onError(device, -1, e.getMessage());
-                    }
+            @Override
+            public void onFailure(Call call, IOException e) {
+                future.completeExceptionally(OnvifExceptionFactory.fromHttpError(-1, e.getMessage()));
+            }
+        });
 
-                });
+        return future;
     }
 
-    private void parseResponse(OnvifDevice device, OnvifResponse response) {
+    @SuppressWarnings("unchecked")
+	private <T> T parseResponseAsFutureResult(OnvifResponse response) {
         switch (response.request().getType()) {
             case GET_SERVICES:
-                OnvifServices path = new GetServicesParser().parse(response);
-                device.setPath(path);
-                ((GetServicesRequest) response.request()).getListener().onServicesReceived(device, path);
-                break;
+                return (T) new GetServicesParser().parse(response);
             case GET_DEVICE_INFORMATION:
-                ((GetDeviceInformationRequest) response.request()).getListener().onDeviceInformationReceived(device,
-                        new GetDeviceInformationParser().parse(response));
-                break;
+                return (T) new GetDeviceInformationParser().parse(response);
             case GET_MEDIA_PROFILES:
-                ((GetMediaProfilesRequest) response.request()).getListener().onMediaProfilesReceived(device,
-                        new GetMediaProfilesParser().parse(response));
-                break;
+                return (T) new GetMediaProfilesParser().parse(response);
             case GET_STREAM_URI:
-                GetMediaStreamRequest streamRequest = (GetMediaStreamRequest) response.request();
-                streamRequest.getListener().onMediaStreamURIReceived(device, streamRequest.getMediaProfile(),
-                        new GetMediaStreamParser().parse(response));
-                break;
+                return (T) new GetMediaStreamParser().parse(response);
             case GET_CAPABILITIES:
-            	((GetCapabilitiesRequest) response.request()).getListener().onDeviceCapabilitiesReceived(device,
-            			new GetCapabilitiesParser().parse(response));
-            	break;
+                return (T) new GetCapabilitiesParser().parse(response);
             case GET_SNAPSHOT_URI:
-            	GetSnapshotRequest snapshotRequest = (GetSnapshotRequest) response.request();
-            	snapshotRequest.getListener().onMediaSnapshotReceived(device, snapshotRequest.getMediaProfile(),
-            			new GetSnapshotParser().parse(response));
-            	break;
+                return (T) new GetSnapshotParser().parse(response);
             case GET_SYSTEM_DATE_AND_TIME:
-                ((GetSystemDateAndTimeRequest) response.request()).getListener().onSystemDateAndTimeReceived(device,
-                        new GetSystemDateAndTimeParser().parse(response));
-                break;
+                return (T) new GetSystemDateAndTimeParser().parse(response);
             default:
-                if(onvifResponseListener != null) {
-                   onvifResponseListener.onResponse(device, response);
-                }
-                break;
+                // For requests that don't need dedicated parsers (like PTZ move/stop)
+                return (T) response;
         }
-    }
-
-    private Request buildOnvifRequest(OnvifDevice device, OnvifRequest request, RequestBody body) {
-        return new Request.Builder()
-                .url(getUrlForRequest(device, request))
-                .addHeader("Content-Type", "text/xml; charset=utf-8")
-                .post(body)
-                .build();
-    }
-
-    private String getUrlForRequest(OnvifDevice device, OnvifRequest request) {
-    	if(device.getBaseUrl() == null || device.getBaseUrl().isEmpty()) return device.getHostName() + getPathForRequest(device, request);
-    	return device.getBaseUrl() + getPathForRequest(device, request);
     }
 
     private String getPathForRequest(OnvifDevice device, OnvifRequest request) {
         switch (request.getType()) {
             case GET_SERVICES:
+            case GET_CAPABILITIES:
+            case GET_SNAPSHOT_URI:
                 return device.getPath().getServicesPath();
             case GET_DEVICE_INFORMATION:
+            case GET_SYSTEM_DATE_AND_TIME:
                 return device.getPath().getDeviceInformationPath();
             case GET_MEDIA_PROFILES:
                 return device.getPath().getProfilesPath();
             case GET_STREAM_URI:
                 return device.getPath().getStreamURIPath();
-            case GET_CAPABILITIES:
-            	return device.getPath().getServicesPath();
-            case GET_SNAPSHOT_URI:
-            	return device.getPath().getServicesPath();
-            case GET_SYSTEM_DATE_AND_TIME:
-                return device.getPath().getDeviceInformationPath();
+            default:
+                return device.getPath().getServicesPath();
         }
-
-        return device.getPath().getServicesPath();
     }
 
+    public void clear() {
+        deviceClients.clear();
+    }
 }

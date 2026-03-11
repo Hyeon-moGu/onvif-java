@@ -1,15 +1,14 @@
 package io.github.hyeonmo.requests.device;
 
-import io.github.hyeonmo.listeners.device.OnvifSystemDateAndTimeListener;
 import io.github.hyeonmo.models.OnvifType;
 import io.github.hyeonmo.requests.OnvifRequest;
 
+/**
+ * Modified for v2.0 - callback removed.
+ */
 public class GetSystemDateAndTimeRequest implements OnvifRequest {
 
-    private OnvifSystemDateAndTimeListener listener;
-
-    public GetSystemDateAndTimeRequest(OnvifSystemDateAndTimeListener listener) {
-        this.listener = listener;
+    public GetSystemDateAndTimeRequest() {
     }
 
     @Override
@@ -20,9 +19,5 @@ public class GetSystemDateAndTimeRequest implements OnvifRequest {
     @Override
     public OnvifType getType() {
         return OnvifType.GET_SYSTEM_DATE_AND_TIME;
-    }
-
-    public OnvifSystemDateAndTimeListener getListener() {
-        return listener;
     }
 }

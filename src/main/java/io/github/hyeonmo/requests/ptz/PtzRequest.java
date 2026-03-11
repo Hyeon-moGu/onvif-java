@@ -1,15 +1,13 @@
 package io.github.hyeonmo.requests.ptz;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import io.github.hyeonmo.AuthXMLBuilder;
 import io.github.hyeonmo.OnvifManager;
-import io.github.hyeonmo.listeners.media.OnvifMediaProfilesListener;
-import io.github.hyeonmo.listeners.ptz.PtzResponseListener;
+import io.github.hyeonmo.exceptions.OnvifExceptionFactory;
 import io.github.hyeonmo.models.OnvifDevice;
-import io.github.hyeonmo.models.OnvifMediaProfile;
 import io.github.hyeonmo.models.ptz.PresetCommand;
 import io.github.hyeonmo.models.ptz.PtzType;
 import io.github.hyeonmo.parsers.ptz.PtzParser;
@@ -23,160 +21,117 @@ import okhttp3.Response;
 
 /**
  * Created by Hyeonmo Gu on 17/09/2025.
+ * Modified for v2.0 - CompletableFuture based, callbacks removed.
  */
 public class PtzRequest {
 
-	private static int PTZ_REQUEST_TIMEOUT = 5000;
+    private static int PTZ_REQUEST_TIMEOUT = 5000;
+    private int ptzRequestTimeout = PTZ_REQUEST_TIMEOUT;
 
-	private int ptzRequestTimeout = PTZ_REQUEST_TIMEOUT;
+    private final PtzParser ptzParser;
+    private final OnvifManager onvifManager;
+    private OkHttpClient httpClient;
 
-	private PtzParser ptzParser;
-
-	private final OnvifManager onvifManager;
-
-	private OkHttpClient httpClient;
-
-	private static final MediaType SOAP_MEDIA_TYPE = MediaType.parse("application/soap+xml; charset=utf-8");
+    private static final MediaType SOAP_MEDIA_TYPE = MediaType.parse("application/soap+xml; charset=utf-8");
     private static final int ERROR_CODE_PROFILE = -100;
 
-	public PtzRequest(OnvifManager onvifManager) {
-		this.onvifManager = onvifManager;
-	    this.ptzParser = new PtzParser();
-        this.httpClient = new OkHttpClient.Builder()
-                .connectTimeout(ptzRequestTimeout, TimeUnit.MILLISECONDS)
-                .readTimeout(ptzRequestTimeout, TimeUnit.MILLISECONDS)
-                .writeTimeout(ptzRequestTimeout, TimeUnit.MILLISECONDS)
-                .build();
-	}
-
-	public void move(OnvifDevice onvifDevice, PtzType ptzType, PtzResponseListener ptzResponseListener) {
-    	String xaddr = onvifDevice.getAddresses().get(0);
-
-        onvifManager.getMediaProfiles(onvifDevice, new OnvifMediaProfilesListener() {
-
-            @Override
-            public void onMediaProfilesReceived(OnvifDevice device, List<OnvifMediaProfile> mediaProfiles) {
-            	if (mediaProfiles == null || mediaProfiles.isEmpty()) {
-            	    ptzResponseListener.onError(
-            	        ERROR_CODE_PROFILE,
-            	        "No media profiles found to get Profile Token."
-            	    );
-            	    return;
-            	}
-            	String profileToken = mediaProfiles.get(0).getToken();
-
-            	AuthXMLBuilder builder = new AuthXMLBuilder(onvifDevice.getUsername(), onvifDevice.getPassword());
-        		String soapXml = builder.getAuthHeader() + builder.getPtzMoveBody(profileToken,ptzType) + builder.getAuthEnd();
-
-        		sendSoap(xaddr, soapXml, ptzResponseListener, "move");
-            }
-        });
+    public PtzRequest(OnvifManager onvifManager) {
+        this.onvifManager = onvifManager;
+        this.ptzParser = new PtzParser();
+        this.httpClient = buildHttpClient();
     }
 
-	public void stop(OnvifDevice onvifDevice, PtzResponseListener ptzResponseListener) {
-    	String xaddr = onvifDevice.getAddresses().get(0);
-
-        onvifManager.getMediaProfiles(onvifDevice, new OnvifMediaProfilesListener() {
-
-            @Override
-            public void onMediaProfilesReceived(OnvifDevice device, List<OnvifMediaProfile> mediaProfiles) {
-            	if (mediaProfiles == null || mediaProfiles.isEmpty()) {
-            	    ptzResponseListener.onError(
-            	        ERROR_CODE_PROFILE,
-            	        "No media profiles found to get Profile Token"
-            	    );
-            	    return;
-            	}
-                String profileToken = mediaProfiles.get(0).getToken();
-
-            	AuthXMLBuilder builder = new AuthXMLBuilder(onvifDevice.getUsername(), onvifDevice.getPassword());
-        		String soapXml = builder.getAuthHeader() + builder.getPtzStopBody(profileToken) + builder.getAuthEnd();
-
-        		sendSoap(xaddr, soapXml, ptzResponseListener, "stop");
-            }
-        });
+    public CompletableFuture<String> move(OnvifDevice onvifDevice, PtzType ptzType) {
+        String xaddr = onvifDevice.getAddresses().get(0);
+        return onvifManager.getMediaProfiles(onvifDevice)
+            .thenCompose(profiles -> {
+                if (profiles == null || profiles.isEmpty()) {
+                    CompletableFuture<String> f = new CompletableFuture<>();
+                    f.completeExceptionally(OnvifExceptionFactory.fromHttpError(ERROR_CODE_PROFILE, "No media profiles found."));
+                    return f;
+                }
+                String profileToken = profiles.get(0).getToken();
+                AuthXMLBuilder builder = new AuthXMLBuilder(onvifDevice.getUsername(), onvifDevice.getPassword());
+                String soapXml = builder.getAuthHeader() + builder.getPtzMoveBody(profileToken, ptzType) + builder.getAuthEnd();
+                return sendSoap(xaddr, soapXml, "move");
+            });
     }
 
-    public void move(String xaddr, String profileToken, String userName, String password, PtzType ptzType, PtzResponseListener ptzResponseListener) {
-    	AuthXMLBuilder builder = new AuthXMLBuilder(userName, password);
-
-		String soapXml = builder.getAuthHeader() + builder.getPtzMoveBody(profileToken, ptzType) + builder.getAuthEnd();
-
-		sendSoap(xaddr, soapXml, ptzResponseListener, "move");
+    public CompletableFuture<String> stop(OnvifDevice onvifDevice) {
+        String xaddr = onvifDevice.getAddresses().get(0);
+        return onvifManager.getMediaProfiles(onvifDevice)
+            .thenCompose(profiles -> {
+                if (profiles == null || profiles.isEmpty()) {
+                    CompletableFuture<String> f = new CompletableFuture<>();
+                    f.completeExceptionally(OnvifExceptionFactory.fromHttpError(ERROR_CODE_PROFILE, "No media profiles found."));
+                    return f;
+                }
+                String profileToken = profiles.get(0).getToken();
+                AuthXMLBuilder builder = new AuthXMLBuilder(onvifDevice.getUsername(), onvifDevice.getPassword());
+                String soapXml = builder.getAuthHeader() + builder.getPtzStopBody(profileToken) + builder.getAuthEnd();
+                return sendSoap(xaddr, soapXml, "stop");
+            });
     }
 
-    public void stop(String xaddr, String profileToken, String userName, String password, PtzResponseListener ptzResponseListener) {
-    	AuthXMLBuilder builder = new AuthXMLBuilder(userName, password);
-
-		String soapXml = builder.getAuthHeader() + builder.getPtzStopBody(profileToken) + builder.getAuthEnd();
-		sendSoap(xaddr, soapXml, ptzResponseListener, "stop");
+    public CompletableFuture<String> move(String xaddr, String profileToken, String userName, String password, PtzType ptzType) {
+        AuthXMLBuilder builder = new AuthXMLBuilder(userName, password);
+        String soapXml = builder.getAuthHeader() + builder.getPtzMoveBody(profileToken, ptzType) + builder.getAuthEnd();
+        return sendSoap(xaddr, soapXml, "move");
     }
 
-    public void preset(OnvifDevice onvifDevice, PresetCommand presetCommand, PtzResponseListener ptzResponseListener) {
-    	String xaddr = onvifDevice.getAddresses().get(0);
-
-        onvifManager.getMediaProfiles(onvifDevice, new OnvifMediaProfilesListener() {
-
-            @Override
-            public void onMediaProfilesReceived(OnvifDevice device, List<OnvifMediaProfile> mediaProfiles) {
-            	if (mediaProfiles == null || mediaProfiles.isEmpty()) {
-            	    ptzResponseListener.onError(
-            	        ERROR_CODE_PROFILE,
-            	        "No media profiles found to get Profile Token"
-            	    );
-            	    return;
-            	}
-                String profileToken = mediaProfiles.get(0).getToken();
-
-            	AuthXMLBuilder builder = new AuthXMLBuilder(onvifDevice.getUsername(), onvifDevice.getPassword());
-
-        		String soapXml = builder.getAuthHeader() + builder.getPresetBody(profileToken, presetCommand) + builder.getAuthEnd();
-        		sendSoap(xaddr, soapXml, ptzResponseListener, "preset");
-            }
-        });
+    public CompletableFuture<String> stop(String xaddr, String profileToken, String userName, String password) {
+        AuthXMLBuilder builder = new AuthXMLBuilder(userName, password);
+        String soapXml = builder.getAuthHeader() + builder.getPtzStopBody(profileToken) + builder.getAuthEnd();
+        return sendSoap(xaddr, soapXml, "stop");
     }
 
-    public void preset(String xaddr, String profileToken, String userName, String password, PresetCommand presetCommand, PtzResponseListener ptzResponseListener) {
-    	AuthXMLBuilder builder = new AuthXMLBuilder(userName, password);
-
-		String soapXml = builder.getAuthHeader() + builder.getPresetBody(profileToken, presetCommand) + builder.getAuthEnd();
-		sendSoap(xaddr, soapXml, ptzResponseListener, "preset");
+    public CompletableFuture<String> preset(OnvifDevice onvifDevice, PresetCommand presetCommand) {
+        String xaddr = onvifDevice.getAddresses().get(0);
+        return onvifManager.getMediaProfiles(onvifDevice)
+            .thenCompose(profiles -> {
+                if (profiles == null || profiles.isEmpty()) {
+                    CompletableFuture<String> f = new CompletableFuture<>();
+                    f.completeExceptionally(OnvifExceptionFactory.fromHttpError(ERROR_CODE_PROFILE, "No media profiles found."));
+                    return f;
+                }
+                String profileToken = profiles.get(0).getToken();
+                AuthXMLBuilder builder = new AuthXMLBuilder(onvifDevice.getUsername(), onvifDevice.getPassword());
+                String soapXml = builder.getAuthHeader() + builder.getPresetBody(profileToken, presetCommand) + builder.getAuthEnd();
+                return sendSoap(xaddr, soapXml, "preset");
+            });
     }
 
-    public void getStatus(OnvifDevice onvifDevice, PtzResponseListener ptzResponseListener) {
-    	String xaddr = onvifDevice.getAddresses().get(0);
-
-        onvifManager.getMediaProfiles(onvifDevice, new OnvifMediaProfilesListener() {
-
-            @Override
-            public void onMediaProfilesReceived(OnvifDevice device, List<OnvifMediaProfile> mediaProfiles) {
-            	if (mediaProfiles == null || mediaProfiles.isEmpty()) {
-            	    ptzResponseListener.onError(
-            	        ERROR_CODE_PROFILE,
-            	        "No media profiles found to get Profile Token"
-            	    );
-            	    return;
-            	}
-                String profileToken = mediaProfiles.get(0).getToken();
-
-            	AuthXMLBuilder builder = new AuthXMLBuilder(onvifDevice.getUsername(), onvifDevice.getPassword());
-
-        		String soapXml = builder.getAuthHeader() + builder.getPtzStatusBody(profileToken) + builder.getAuthEnd();
-        		sendSoap(xaddr, soapXml, ptzResponseListener, "status");
-            }
-        });
+    public CompletableFuture<String> preset(String xaddr, String profileToken, String userName, String password, PresetCommand presetCommand) {
+        AuthXMLBuilder builder = new AuthXMLBuilder(userName, password);
+        String soapXml = builder.getAuthHeader() + builder.getPresetBody(profileToken, presetCommand) + builder.getAuthEnd();
+        return sendSoap(xaddr, soapXml, "preset");
     }
 
-    public void getStatus(String xaddr, String profileToken, String userName, String password, PtzResponseListener ptzResponseListener) {
-    	AuthXMLBuilder builder = new AuthXMLBuilder(userName, password);
-
-		String soapXml = builder.getAuthHeader() + builder.getPtzStatusBody(profileToken) + builder.getAuthEnd();
-		sendSoap(xaddr, soapXml, ptzResponseListener, "status");
+    public CompletableFuture<String> getStatus(OnvifDevice onvifDevice) {
+        String xaddr = onvifDevice.getAddresses().get(0);
+        return onvifManager.getMediaProfiles(onvifDevice)
+            .thenCompose(profiles -> {
+                if (profiles == null || profiles.isEmpty()) {
+                    CompletableFuture<String> f = new CompletableFuture<>();
+                    f.completeExceptionally(OnvifExceptionFactory.fromHttpError(ERROR_CODE_PROFILE, "No media profiles found."));
+                    return f;
+                }
+                String profileToken = profiles.get(0).getToken();
+                AuthXMLBuilder builder = new AuthXMLBuilder(onvifDevice.getUsername(), onvifDevice.getPassword());
+                String soapXml = builder.getAuthHeader() + builder.getPtzStatusBody(profileToken) + builder.getAuthEnd();
+                return sendSoap(xaddr, soapXml, "status");
+            });
     }
 
-    private void sendSoap(String urlStr, String soapXml, PtzResponseListener listener, String type) {
+    public CompletableFuture<String> getStatus(String xaddr, String profileToken, String userName, String password) {
+        AuthXMLBuilder builder = new AuthXMLBuilder(userName, password);
+        String soapXml = builder.getAuthHeader() + builder.getPtzStatusBody(profileToken) + builder.getAuthEnd();
+        return sendSoap(xaddr, soapXml, "status");
+    }
+
+    private CompletableFuture<String> sendSoap(String urlStr, String soapXml, String type) {
+        CompletableFuture<String> future = new CompletableFuture<>();
         RequestBody body = RequestBody.create(SOAP_MEDIA_TYPE, soapXml);
-
         Request request = new Request.Builder()
             .url(urlStr)
             .addHeader("Content-Type", SOAP_MEDIA_TYPE.toString())
@@ -186,31 +141,38 @@ public class PtzRequest {
         httpClient.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                listener.onError(-1, "Network failure: " + e.getMessage());
+                future.completeExceptionally(OnvifExceptionFactory.fromHttpError(-1, e.getMessage()));
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 String responseBody = response.body() != null ? response.body().string() : "";
-
                 if (!response.isSuccessful()) {
-                    listener.onError(response.code(), "HTTP Error " + response.code() + ", Body: " + responseBody);
+                    future.completeExceptionally(OnvifExceptionFactory.fromHttpError(response.code(), responseBody));
                 } else {
-                    listener.onResponse(ptzParser.parser(type, responseBody));
+                    io.github.hyeonmo.responses.PtzResponse ptzResponse = ptzParser.parser(type, responseBody);
+                    if (ptzResponse.isSuccess()) {
+                        future.complete(ptzResponse.getMessage());
+                    } else {
+                        future.completeExceptionally(new io.github.hyeonmo.exceptions.OnvifException(ptzResponse.getMessage()));
+                    }
                 }
             }
         });
+        return future;
     }
 
-    // Methods
     public int getPtzRequestTimeout() {
         return ptzRequestTimeout;
     }
 
     public void setPtzRequestTimeout(int to) {
         ptzRequestTimeout = to;
+        this.httpClient = buildHttpClient();
+    }
 
-        this.httpClient = new OkHttpClient.Builder()
+    private OkHttpClient buildHttpClient() {
+        return new OkHttpClient.Builder()
                 .connectTimeout(ptzRequestTimeout, TimeUnit.MILLISECONDS)
                 .readTimeout(ptzRequestTimeout, TimeUnit.MILLISECONDS)
                 .writeTimeout(ptzRequestTimeout, TimeUnit.MILLISECONDS)

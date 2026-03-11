@@ -1,178 +1,117 @@
 package io.github.hyeonmo;
 
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.CompletableFuture;
 
-import io.github.hyeonmo.listeners.device.OnvifCapabilitiesListener;
-import io.github.hyeonmo.listeners.imaging.ImagingFocusResponseListener;
-import io.github.hyeonmo.listeners.imaging.ImagingResponseListener;
-import io.github.hyeonmo.listeners.imaging.ImagingSettingRequestListener;
-import io.github.hyeonmo.listeners.imaging.ImagingSettingsListener;
-import io.github.hyeonmo.listeners.media.OnvifMediaProfilesListener;
-import io.github.hyeonmo.models.OnvifCapabilities;
 import io.github.hyeonmo.models.OnvifDevice;
-import io.github.hyeonmo.models.OnvifMediaProfile;
 import io.github.hyeonmo.models.imaging.ImagingSettings;
 import io.github.hyeonmo.requests.imaging.GetImagingSettingsRequest;
 import io.github.hyeonmo.requests.imaging.ImagingFocusRequest;
 import io.github.hyeonmo.requests.imaging.ImagingFocusStopRequest;
 import io.github.hyeonmo.requests.imaging.ImagingRequest;
 import io.github.hyeonmo.requests.imaging.ImagingSettingRequest;
-import io.github.hyeonmo.responses.ImagingResponse;
 
 /**
+ * Manages Imaging settings and Focus commands for ONVIF devices asynchronously.
  * Created by Hyeonmo Gu on 24/09/2025.
+ * Modified by Hyeonmo Gu for v2.0
  */
-public class ImagingManager implements ImagingResponseListener{
+public class ImagingManager {
 
-    //Constants
     public final static String TAG = ImagingManager.class.getSimpleName();
 
-    private static final ExecutorService TOKEN_EXECUTOR = Executors.newCachedThreadPool();
-
-    //Attributes
     private ImagingExecutor executor;
-	private ImagingResponseListener imagingResponseListener;
+    private OnvifManager onvifManager;
 
-	//Constructors
-	public ImagingManager() {
-		this(null);
-	}
+    public ImagingManager() {
+        this(new OnvifManager());
+    }
 
-	public ImagingManager(ImagingResponseListener imagingResponseListener) {
-		this.imagingResponseListener = imagingResponseListener;
-		executor = new ImagingExecutor(this);
-	}
+    public ImagingManager(OnvifManager onvifManager) {
+        this.onvifManager = onvifManager;
+        this.executor = new ImagingExecutor();
+    }
 
-	//Methods
-	public void getImagingSettings(OnvifDevice device, ImagingSettingsListener listener) {
-	    getToken(device, (token, xaddr) -> {
-	        ImagingRequest request = new GetImagingSettingsRequest(listener ,token, xaddr);
-	        executor.sendRequest(device, request);
-	    });
-	}
+    public CompletableFuture<ImagingSettings> getImagingSettings(OnvifDevice device) {
+        return getToken(device).thenCompose(tokenData -> {
+            ImagingRequest request = new GetImagingSettingsRequest(tokenData.token, tokenData.xaddr);
+            return executor.sendRequest(device, request);
+        });
+    }
 
-	public void getImagingSettings(String videoSourceToken, String imagingXaddr, String userName, String password, ImagingSettingsListener listener) {
-		ImagingRequest request = new GetImagingSettingsRequest(listener, videoSourceToken, imagingXaddr);
-		executor.sendRequestUser(userName, password, request);
-	}
+    public CompletableFuture<ImagingSettings> getImagingSettings(String videoSourceToken, String imagingXaddr, String userName, String password) {
+        ImagingRequest request = new GetImagingSettingsRequest(videoSourceToken, imagingXaddr);
+        return executor.sendRequestUser(userName, password, request);
+    }
 
-	public void focusContinuousMove(OnvifDevice device, double focus, ImagingFocusResponseListener listener) {
-		getToken(device, (token, xaddr) -> {
-			ImagingRequest request = new ImagingFocusRequest(listener, token, xaddr, focus);
-			executor.sendRequest(device, request);
-		});
-	}
+    public CompletableFuture<String> focusContinuousMove(OnvifDevice device, double focus) {
+        return getToken(device).thenCompose(tokenData -> {
+            ImagingRequest request = new ImagingFocusRequest(tokenData.token, tokenData.xaddr, focus);
+            return executor.sendRequest(device, request);
+        });
+    }
 
-	public void focusContinuousMove(String videoSourceToken, String imagingXaddr, String userName, String password, double focus, ImagingFocusResponseListener listener) {
-		ImagingRequest request = new ImagingFocusRequest(listener, videoSourceToken, imagingXaddr, focus);
-		executor.sendRequestUser(userName, password, request);
-	}
+    public CompletableFuture<String> focusContinuousMove(String videoSourceToken, String imagingXaddr, String userName, String password, double focus) {
+        ImagingRequest request = new ImagingFocusRequest(videoSourceToken, imagingXaddr, focus);
+        return executor.sendRequestUser(userName, password, request);
+    }
 
-	public void focusStop(OnvifDevice device, ImagingFocusResponseListener listener) {
-		getToken(device, (token, xaddr) -> {
-			ImagingRequest request = new ImagingFocusStopRequest(listener, token, xaddr);
-			executor.sendRequest(device, request);
-		});
-	}
+    public CompletableFuture<String> focusStop(OnvifDevice device) {
+        return getToken(device).thenCompose(tokenData -> {
+            ImagingRequest request = new ImagingFocusStopRequest(tokenData.token, tokenData.xaddr);
+            return executor.sendRequest(device, request);
+        });
+    }
 
-	public void focusStop(String videoSourceToken, String imagingXaddr, String userName, String password, ImagingFocusResponseListener listener) {
-		ImagingRequest request = new ImagingFocusStopRequest(listener, videoSourceToken, imagingXaddr);
-		executor.sendRequestUser(userName, password, request);
-	}
+    public CompletableFuture<String> focusStop(String videoSourceToken, String imagingXaddr, String userName, String password) {
+        ImagingRequest request = new ImagingFocusStopRequest(videoSourceToken, imagingXaddr);
+        return executor.sendRequestUser(userName, password, request);
+    }
 
-	public void setImagingSettings(OnvifDevice device, ImagingSettings imagingSettings, ImagingSettingRequestListener listener) {
-		getToken(device, (token, xaddr) -> {
-			ImagingRequest request = new ImagingSettingRequest(listener, token, xaddr, imagingSettings);
-			executor.sendRequest(device, request);
-		});
-	}
+    public CompletableFuture<String> setImagingSettings(OnvifDevice device, ImagingSettings imagingSettings) {
+        return getToken(device).thenCompose(tokenData -> {
+            ImagingRequest request = new ImagingSettingRequest(tokenData.token, tokenData.xaddr, imagingSettings);
+            return executor.sendRequest(device, request);
+        });
+    }
 
-	public void setImagingSettings(String videoSourceToken, String imagingXaddr, String userName, String password, ImagingSettings imagingSettings, ImagingSettingRequestListener listener) {
-		ImagingRequest request = new ImagingSettingRequest(listener, videoSourceToken, imagingXaddr, imagingSettings);
-		executor.sendRequestUser(userName, password, request);
-	}
+    public CompletableFuture<String> setImagingSettings(String videoSourceToken, String imagingXaddr, String userName, String password, ImagingSettings imagingSettings) {
+        ImagingRequest request = new ImagingSettingRequest(videoSourceToken, imagingXaddr, imagingSettings);
+        return executor.sendRequestUser(userName, password, request);
+    }
 
-    /**
-     * Clear up the resources.
-     */
     public void destroy() {
-    	imagingResponseListener = null;
-
         if (executor != null) {
             executor.destroy();
             executor = null;
         }
-
-        TOKEN_EXECUTOR.shutdown();
-        try {
-            if (!TOKEN_EXECUTOR.awaitTermination(5, TimeUnit.SECONDS)) {
-                TOKEN_EXECUTOR.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            TOKEN_EXECUTOR.shutdownNow();
-        }
     }
 
-	protected void getToken(OnvifDevice device, TokenCallback callback) {
-	    OnvifManager om = new OnvifManager();
+    private CompletableFuture<TokenData> getToken(OnvifDevice device) {
+        CompletableFuture<String> tokenFuture = onvifManager.getMediaProfiles(device)
+            .thenApply(profiles -> {
+                if (profiles == null || profiles.isEmpty()) {
+                    throw new RuntimeException("No profiles found to get video source token");
+                }
+                return profiles.get(0).getVideoSourceToken();
+            });
 
-	    final AtomicReference<String> token = new AtomicReference<>();
-	    final AtomicReference<String> xaddr = new AtomicReference<>();
-	    CountDownLatch latch = new CountDownLatch(2);
+        CompletableFuture<String> xaddrFuture = onvifManager.getCapabilities(device)
+            .thenApply(caps -> {
+                if(caps == null || caps.getImagingXaddr() == null) {
+                    throw new RuntimeException("Imaging XAddr is not supported or null");
+                }
+                return caps.getImagingXaddr();
+            });
 
-	    om.getMediaProfiles(device, new OnvifMediaProfilesListener() {
-	        @Override
-	        public void onMediaProfilesReceived(OnvifDevice dev, List<OnvifMediaProfile> profiles) {
-	            token.set(profiles.get(0).getVideoSourceToken());
-	            latch.countDown();
-	        }
-	    });
+        return tokenFuture.thenCombine(xaddrFuture, TokenData::new);
+    }
 
-	    om.getCapabilities(device, new OnvifCapabilitiesListener() {
-	        @Override
-	        public void onDeviceCapabilitiesReceived(OnvifDevice dev, OnvifCapabilities caps) {
-	            xaddr.set(caps.getImagingXaddr());
-	            latch.countDown();
-	        }
-	    });
-
-	    TOKEN_EXECUTOR.submit(() -> {
-	        try {
-	            if (!latch.await(5, TimeUnit.SECONDS) || token.get() == null || xaddr.get() == null) {
-	                String message = "Token or XAddr acquisition failed within timeout";
-	                onError(device, -2, message);
-	            } else {
-	                callback.onReady(token.get(), xaddr.get());
-	            }
-	        } catch (InterruptedException e) {
-	            Thread.currentThread().interrupt();
-	            onError(device, -3, "Token acquisition interrupted: " + e.getMessage());
-	        }
-	    });
-	}
-
-	protected interface TokenCallback {
-	    void onReady(String token, String xaddr);
-	}
-
-	@Override
-	public void onResponse(OnvifDevice onvifDevice, ImagingResponse response) {
-		if(imagingResponseListener != null) {
-			imagingResponseListener.onResponse(onvifDevice, response);
-		}
-
-	}
-
-	@Override
-	public void onError(OnvifDevice onvifDevice, int errorCode, String errorMessage) {
-		if(imagingResponseListener != null) {
-			imagingResponseListener.onError(onvifDevice, errorCode, errorMessage);
-		}
-
-	}
+    private static class TokenData {
+        final String token;
+        final String xaddr;
+        TokenData(String token, String xaddr) {
+            this.token = token;
+            this.xaddr = xaddr;
+        }
+    }
 }

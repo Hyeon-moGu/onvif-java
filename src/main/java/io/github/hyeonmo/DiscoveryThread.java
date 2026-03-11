@@ -4,7 +4,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketTimeoutException;
 
-import io.github.hyeonmo.listeners.DiscoveryCallback;
+import io.github.hyeonmo.DiscoveryCallback;
 import io.github.hyeonmo.parsers.DiscoveryParser;
 import io.github.hyeonmo.responses.OnvifResponse;
 
