@@ -1,43 +1,31 @@
 package io.github.hyeonmo.operations;
 
-import java.util.concurrent.CompletableFuture;
-
-import io.github.hyeonmo.OnvifManager;
-import io.github.hyeonmo.PtzManager;
-import io.github.hyeonmo.models.OnvifDevice;
 import io.github.hyeonmo.models.ptz.PresetCommand;
 import io.github.hyeonmo.models.ptz.PtzType;
+import java.util.concurrent.CompletableFuture;
 
 /**
- * Fluent API wrapper for PTZ operations.
+ * Operations related to ONVIF Pan/Tilt/Zoom (PTZ) controls.
  */
-public class PtzOperations {
-    
-    private final OnvifDevice device;
-    private final PtzManager ptzManager;
-    
-    public PtzOperations(OnvifDevice device, OnvifManager onvifManager) {
-        this.device = device;
-        this.ptzManager = new PtzManager(onvifManager);
-    }
-    
-    public CompletableFuture<Void> moveAsync(PtzType type) {
-        return ptzManager.move(device, type).thenApply(r -> null);
-    }
-    
-    public CompletableFuture<Void> stopAsync() {
-        return ptzManager.stop(device).thenApply(r -> null);
-    }
-    
-    public CompletableFuture<Void> presetAsync(PresetCommand command) {
-        return ptzManager.preset(device, command).thenApply(r -> null);
-    }
-    
-    public CompletableFuture<String> getStatusAsync() {
-        return ptzManager.getStatus(device);
-    }
-    
-    public void destroy() {
-        ptzManager.destroy();
-    }
+public interface PtzOperations {
+
+    /**
+     * Start continuous movement in the given direction.
+     */
+    CompletableFuture<String> move(PtzType direction);
+
+    /**
+     * Stop all continuous movement.
+     */
+    CompletableFuture<String> stop();
+
+    /**
+     * Get the current PTZ coordinates and status.
+     */
+    CompletableFuture<String> getStatus();
+
+    /**
+     * Execute a PTZ Preset command (Save, Goto, Get).
+     */
+    CompletableFuture<String> preset(PresetCommand command);
 }

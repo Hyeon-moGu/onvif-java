@@ -1,9 +1,5 @@
-package io.github.hyeonmo;
+package io.github.hyeonmo.utils;
 
-/**
- * Created by Tomas Verhelst on 03/09/2018.
- * Copyright (c) 2018 TELETASK BVBA. All rights reserved.
- */
 public class OnvifXMLBuilder {
 
     //Constants

@@ -4,10 +4,6 @@ import io.github.hyeonmo.models.OnvifMediaProfile;
 import io.github.hyeonmo.models.OnvifType;
 import io.github.hyeonmo.requests.OnvifRequest;
 
-/**
- * Created by Hyeonmo Gu on 30/09/2025.
- * Modified for v2.0 - callback removed.
- */
 public class GetSnapshotRequest implements OnvifRequest {
 
     public static final String TAG = GetSnapshotRequest.class.getSimpleName();

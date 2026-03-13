@@ -1,4 +1,4 @@
-package io.github.hyeonmo;
+package io.github.hyeonmo.core;
 
 import java.util.List;
 import io.github.hyeonmo.models.Device;

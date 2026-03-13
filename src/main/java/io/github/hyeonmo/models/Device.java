@@ -4,10 +4,6 @@ package io.github.hyeonmo.models;
 
 import java.util.Locale;
 
-/**
- * Created by Tomas Verhelst on 06/09/2018.
- * Copyright (c) 2018 TELETASK BVBA. All rights reserved.
- */
 public abstract class Device implements Comparable<Device> {
 
     //Constants

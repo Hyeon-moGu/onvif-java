@@ -19,7 +19,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import io.github.hyeonmo.DiscoveryMode;
+import io.github.hyeonmo.core.DiscoveryMode;
 import io.github.hyeonmo.models.Device;
 import io.github.hyeonmo.models.DiscoveryType;
 import io.github.hyeonmo.models.OnvifDevice;
@@ -27,12 +27,6 @@ import io.github.hyeonmo.models.ScopeType;
 import io.github.hyeonmo.models.UPnPDevice;
 import io.github.hyeonmo.responses.OnvifResponse;
 
-/**
- * Created by Tomas Verhelst on 06/09/2018.
- * Copyright (c) 2018 TELETASK BVBA. All rights reserved.
- *
- *  Modified by Hyeonmo Gu on 17/09/2025
- */
 public class DiscoveryParser extends OnvifParser<List<Device>> {
 
 	private static final String LINE_END = "\r\n";
@@ -50,7 +44,7 @@ public class DiscoveryParser extends OnvifParser<List<Device>> {
 	}
 
 	@Override
-	public List<Device> parse(OnvifResponse response) {
+	public List<Device> parse(OnvifResponse<?> response) {
 		List<Device> devices = new ArrayList<>();
 
 		switch (mode) {
@@ -65,7 +59,7 @@ public class DiscoveryParser extends OnvifParser<List<Device>> {
 		return devices;
 	}
 
-	private List<Device> parseOnvif(OnvifResponse response) {
+	private List<Device> parseOnvif(OnvifResponse<?> response) {
 		List<Device> devices = new ArrayList<>();
 		String xml = response.getXml();
 
@@ -96,7 +90,7 @@ public class DiscoveryParser extends OnvifParser<List<Device>> {
 				}
 
 				@Override
-				public Iterator getPrefixes(String namespaceURI) {
+				public Iterator<String> getPrefixes(String namespaceURI) {
 					return null;
 				}
 			});
@@ -109,7 +103,6 @@ public class DiscoveryParser extends OnvifParser<List<Device>> {
 			    String typeText = xPath.evaluate("tns:Types", probeMatch);
 			    String scopes = xPath.evaluate("tns:Scopes", probeMatch);
 			    String xAddrs = xPath.evaluate("tns:XAddrs", probeMatch);
-			    String metadataVersion = xPath.evaluate("tns:MetadataVersion", probeMatch);
 
 			    if (mode.equals(DiscoveryMode.ONVIF) && typeText.contains(DiscoveryType.NETWORK_VIDEO_TRANSMITTER.type)) {
 			    	devices.addAll(parseDevicesFromUri(xAddrs, scopes));
@@ -124,7 +117,7 @@ public class DiscoveryParser extends OnvifParser<List<Device>> {
 		return devices;
 	}
 
-	private Device parseUPnP(OnvifResponse response) {
+	private Device parseUPnP(OnvifResponse<?> response) {
 		String header = response.getXml();
 		String location = parseUPnPHeader(header, KEY_UPNP_LOCATION);
 		String server = parseUPnPHeader(header, KEY_UPNP_SERVER);

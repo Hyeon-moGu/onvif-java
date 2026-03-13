@@ -1,9 +1,5 @@
 package io.github.hyeonmo.models;
 
-/**
- * Created by Tomas Verhelst on 03/09/2018.
- * Copyright (c) 2018 TELETASK BVBA. All rights reserved.
- */
 public class OnvifServices {
 
     //Constants
@@ -18,6 +14,9 @@ public class OnvifServices {
     private String deviceInformationPath = ONVIF_PATH_DEVICE_INFORMATION;
     private String profilesPath = ONVIF_PATH_PROFILES;
     private String streamURIPath = ONVIF_PATH_STREAM_URI;
+    private String ptzPath = ONVIF_PATH_SERVICES;
+    private String imagingPath = ONVIF_PATH_SERVICES;
+    private String eventsPath = ONVIF_PATH_SERVICES;
 
     //Constructors
     public OnvifServices() {
@@ -55,6 +54,30 @@ public class OnvifServices {
 
     public void setStreamURIPath(String streamURIPath) {
         this.streamURIPath = streamURIPath;
+    }
+
+    public String getPtzPath() {
+        return ptzPath;
+    }
+
+    public void setPtzPath(String ptzPath) {
+        this.ptzPath = ptzPath;
+    }
+
+    public String getImagingPath() {
+        return imagingPath;
+    }
+
+    public void setImagingPath(String imagingPath) {
+        this.imagingPath = imagingPath;
+    }
+
+    public String getEventsPath() {
+        return eventsPath;
+    }
+
+    public void setEventsPath(String eventsPath) {
+        this.eventsPath = eventsPath;
     }
 
 }

@@ -1,8 +1,11 @@
-package io.github.hyeonmo;
+package io.github.hyeonmo.managers;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import io.github.hyeonmo.core.ImagingExecutor;
 import io.github.hyeonmo.models.OnvifDevice;
+import io.github.hyeonmo.models.OnvifMediaProfile;
 import io.github.hyeonmo.models.imaging.ImagingSettings;
 import io.github.hyeonmo.requests.imaging.GetImagingSettingsRequest;
 import io.github.hyeonmo.requests.imaging.ImagingFocusRequest;
@@ -12,8 +15,6 @@ import io.github.hyeonmo.requests.imaging.ImagingSettingRequest;
 
 /**
  * Manages Imaging settings and Focus commands for ONVIF devices asynchronously.
- * Created by Hyeonmo Gu on 24/09/2025.
- * Modified by Hyeonmo Gu for v2.0
  */
 public class ImagingManager {
 
@@ -87,21 +88,32 @@ public class ImagingManager {
     }
 
     private CompletableFuture<TokenData> getToken(OnvifDevice device) {
-        CompletableFuture<String> tokenFuture = onvifManager.getMediaProfiles(device)
-            .thenApply(profiles -> {
-                if (profiles == null || profiles.isEmpty()) {
-                    throw new RuntimeException("No profiles found to get video source token");
-                }
-                return profiles.get(0).getVideoSourceToken();
-            });
+        List<OnvifMediaProfile> cachedProfiles = device.getMediaProfiles();
+        io.github.hyeonmo.models.OnvifCapabilities cachedCaps = device.getCapabilities();
 
-        CompletableFuture<String> xaddrFuture = onvifManager.getCapabilities(device)
-            .thenApply(caps -> {
-                if(caps == null || caps.getImagingXaddr() == null) {
-                    throw new RuntimeException("Imaging XAddr is not supported or null");
-                }
-                return caps.getImagingXaddr();
-            });
+        if (cachedProfiles != null && !cachedProfiles.isEmpty() && cachedCaps != null && cachedCaps.getImagingXaddr() != null) {
+            return CompletableFuture.completedFuture(new TokenData(cachedProfiles.get(0).getVideoSourceToken(), cachedCaps.getImagingXaddr()));
+        }
+
+        CompletableFuture<String> tokenFuture = (cachedProfiles != null && !cachedProfiles.isEmpty()) 
+            ? CompletableFuture.completedFuture(cachedProfiles.get(0).getVideoSourceToken())
+            : onvifManager.getMediaProfiles(device)
+                .thenApply(profiles -> {
+                    if (profiles == null || profiles.isEmpty()) {
+                        throw new RuntimeException("No profiles found to get video source token");
+                    }
+                    return profiles.get(0).getVideoSourceToken();
+                });
+
+        CompletableFuture<String> xaddrFuture = (cachedCaps != null && cachedCaps.getImagingXaddr() != null)
+            ? CompletableFuture.completedFuture(cachedCaps.getImagingXaddr())
+            : onvifManager.getCapabilities(device)
+                .thenApply(caps -> {
+                    if(caps == null || caps.getImagingXaddr() == null) {
+                        throw new RuntimeException("Imaging XAddr is not supported or null");
+                    }
+                    return caps.getImagingXaddr();
+                });
 
         return tokenFuture.thenCombine(xaddrFuture, TokenData::new);
     }

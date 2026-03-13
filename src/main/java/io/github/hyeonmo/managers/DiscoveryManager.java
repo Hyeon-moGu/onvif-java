@@ -1,17 +1,13 @@
-package io.github.hyeonmo;
+package io.github.hyeonmo.managers;
 
 import java.net.InetAddress;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import io.github.hyeonmo.core.DiscoveryMode;
+import io.github.hyeonmo.core.OnvifDiscovery;
 import io.github.hyeonmo.models.Device;
 
-/**
- * Created by Tomas Verhelst on 06/09/2018.
- * Copyright (c) 2018 TELETASK BVBA. All rights reserved.
- *
- * Modified by Hyeonmo Gu for v2.0
- */
 public class DiscoveryManager {
 
     public static final String TAG = DiscoveryManager.class.getSimpleName();

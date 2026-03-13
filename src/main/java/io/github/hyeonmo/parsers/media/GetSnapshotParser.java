@@ -17,9 +17,6 @@ import io.github.hyeonmo.parsers.OnvifParser;
 import io.github.hyeonmo.parsers.XMLParserUtils;
 import io.github.hyeonmo.responses.OnvifResponse;
 
-/**
- * Created by Hyeonmo Gu on 30/09/2025.
- */
 public class GetSnapshotParser extends OnvifParser<String>{
 
 	private static final String KEY_URI = "Uri";

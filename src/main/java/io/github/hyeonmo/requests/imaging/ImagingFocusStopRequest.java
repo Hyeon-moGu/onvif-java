@@ -2,10 +2,6 @@ package io.github.hyeonmo.requests.imaging;
 
 import io.github.hyeonmo.models.imaging.ImagingType;
 
-/**
- * Created by Hyeonmo Gu on 24/09/2025.
- * Modified for v2.0 - callback removed.
- */
 public class ImagingFocusStopRequest implements ImagingRequest {
 
     public static final String TAG = ImagingFocusStopRequest.class.getSimpleName();

@@ -1,4 +1,4 @@
-package io.github.hyeonmo;
+package io.github.hyeonmo.utils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -18,11 +18,6 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
-/**
- * Created by Tomas Verhelst on 06/09/2018.
- * Copyright (c) 2018 TELETASK BVBA. All rights reserved.
- *
- */
 public class OnvifUtils {
 
     /**

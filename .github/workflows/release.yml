@@ -7,8 +7,31 @@ on:
       - 'v*'
 
 jobs:
-  publish:
+  test-compatibility:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java-version: [8, 11, 17, 21]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java ${{ matrix.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java-version }}
+          cache: maven
+
+      - name: Compile Check
+        run: mvn clean compile -B
+
+
+  publish:
+    needs: test-compatibility
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
 
     steps:
       - name: Checkout code
@@ -20,10 +43,10 @@ jobs:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
-      - name: Set up Java
+      - name: Set up Java 8 for Release Build
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: 'temurin'
           java-version: 8
           cache: maven
 
@@ -34,7 +57,6 @@ jobs:
 
       - name: Publish to Sonatype OSSRH
         run: |
-          mvn clean install -B -P release -DskipTests
-          mvn deploy -B -P release
+          mvn clean deploy -B -P release -DskipTests
         env:
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}

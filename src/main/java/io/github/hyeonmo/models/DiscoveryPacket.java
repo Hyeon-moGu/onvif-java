@@ -2,13 +2,9 @@ package io.github.hyeonmo.models;
 
 import java.util.Locale;
 
-import io.github.hyeonmo.DiscoveryMode;
-import io.github.hyeonmo.OnvifXMLBuilder;
+import io.github.hyeonmo.core.DiscoveryMode;
+import io.github.hyeonmo.utils.OnvifXMLBuilder;
 
-/**
- * Created by Tomas Verhelst on 05/09/2018.
- * Copyright (c) 2018 TELETASK BVBA. All rights reserved.
- */
 public class DiscoveryPacket extends OnvifPacket {
 
     //Constants

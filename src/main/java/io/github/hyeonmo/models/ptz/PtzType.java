@@ -1,8 +1,5 @@
 package io.github.hyeonmo.models.ptz;
 
-/**
- * Created by Hyeonmo Gu on 17/09/2025.
- */
 public enum PtzType {
 
     UP(0.0, 0.7, 0.0),

@@ -16,11 +16,6 @@ import org.xml.sax.SAXException;
 import io.github.hyeonmo.responses.OnvifResponse;
 import io.github.hyeonmo.upnp.UPnPDeviceInformation;
 
-/**
- * Created by Tomas Verhelst on 06/09/2018.
- * Copyright (c) 2018 TELETASK BVBA. All rights reserved.
- *
- */
 public class UPnPParser extends OnvifParser<UPnPDeviceInformation> {
 
     @Override

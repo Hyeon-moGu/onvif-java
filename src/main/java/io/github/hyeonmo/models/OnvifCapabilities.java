@@ -1,8 +1,5 @@
 package io.github.hyeonmo.models;
 
-/**
- * Created by Hyeonmo Gu on 17/09/2025.
- */
 public class OnvifCapabilities {
 
 	// Device

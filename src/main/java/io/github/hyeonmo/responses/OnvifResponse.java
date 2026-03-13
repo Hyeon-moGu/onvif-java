@@ -2,10 +2,6 @@ package io.github.hyeonmo.responses;
 
 import io.github.hyeonmo.requests.OnvifRequest;
 
-/**
- * Created by Tomas Verhelst on 03/09/2018.
- * Copyright (c) 2018 TELETASK BVBA. All rights reserved.
- */
 public class OnvifResponse<T> {
 
     //Constants

@@ -1,9 +1,5 @@
-package io.github.hyeonmo;
+package io.github.hyeonmo.core;
 
-/**
- * Created by Tomas Verhelst on 05/09/2018.
- * Copyright (c) 2018 TELETASK BVBA. All rights reserved.
- */
 public enum DiscoveryMode {
     ONVIF(3702),
     UPNP(1900);

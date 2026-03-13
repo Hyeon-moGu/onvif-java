@@ -2,14 +2,19 @@ package io.github.hyeonmo.models;
 
 
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.ArrayList;
 
-/**
- * Created by Tomas Verhelst on 03/09/2018.
- * Copyright (c) 2018 TELETASK BVBA. All rights reserved.
- */
+import io.github.hyeonmo.operations.DeviceOperations;
+import io.github.hyeonmo.operations.MediaOperations;
+import io.github.hyeonmo.operations.PtzOperations;
+import io.github.hyeonmo.operations.ImagingOperations;
+import io.github.hyeonmo.operations.impl.DeviceOperationsImpl;
+import io.github.hyeonmo.operations.impl.MediaOperationsImpl;
+import io.github.hyeonmo.operations.impl.PtzOperationsImpl;
+import io.github.hyeonmo.operations.impl.ImagingOperationsImpl;
+
 public class OnvifDevice extends Device {
 
     //Constants
@@ -21,9 +26,14 @@ public class OnvifDevice extends Device {
     private List<HashMap<String, Object>> scopes;
 
     private String baseUrl;
-    private String userName;
-    private String password;
     private long timeOffsetMs;
+    private OnvifCapabilities capabilities;
+    private List<OnvifMediaProfile> mediaProfiles;
+
+    private transient DeviceOperations deviceOperations;
+    private transient MediaOperations mediaOperations;
+    private transient PtzOperations ptzOperations;
+    private transient ImagingOperations imagingOperations;
 
     //Constructors
     public OnvifDevice(String hostName) {
@@ -82,6 +92,42 @@ public class OnvifDevice extends Device {
 
     public void setTimeOffsetMs(long timeOffsetMs) {
         this.timeOffsetMs = timeOffsetMs;
+    }
+
+    public DeviceOperations device() {
+        if (deviceOperations == null) deviceOperations = new DeviceOperationsImpl(this);
+        return deviceOperations;
+    }
+
+    public MediaOperations media() {
+        if (mediaOperations == null) mediaOperations = new MediaOperationsImpl(this);
+        return mediaOperations;
+    }
+
+    public PtzOperations ptz() {
+        if (ptzOperations == null) ptzOperations = new PtzOperationsImpl(this);
+        return ptzOperations;
+    }
+
+    public ImagingOperations imaging() {
+        if (imagingOperations == null) imagingOperations = new ImagingOperationsImpl(this);
+        return imagingOperations;
+    }
+
+    public OnvifCapabilities getCapabilities() {
+        return capabilities;
+    }
+
+    public void setCapabilities(OnvifCapabilities capabilities) {
+        this.capabilities = capabilities;
+    }
+
+    public List<OnvifMediaProfile> getMediaProfiles() {
+        return mediaProfiles;
+    }
+
+    public void setMediaProfiles(List<OnvifMediaProfile> mediaProfiles) {
+        this.mediaProfiles = mediaProfiles;
     }
 
     @Override

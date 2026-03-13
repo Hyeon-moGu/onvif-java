@@ -1,4 +1,4 @@
-package io.github.hyeonmo;
+package io.github.hyeonmo.core;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -10,9 +10,6 @@ import java.util.Random;
 import io.github.hyeonmo.models.ptz.PresetCommand;
 import io.github.hyeonmo.models.ptz.PtzType;
 
-/**
- * Created by Hyeonmo Gu on 17/09/2025.
- */
 public class AuthXMLBuilder {
 
 	private String userName;

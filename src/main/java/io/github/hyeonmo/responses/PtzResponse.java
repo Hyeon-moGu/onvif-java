@@ -1,8 +1,5 @@
 package io.github.hyeonmo.responses;
 
-/**
- * Created by Hyeonmo Gu on 17/09/2025.
- */
 public class PtzResponse {
 	private final boolean success;
 	private final String message;

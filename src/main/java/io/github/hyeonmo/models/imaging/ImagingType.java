@@ -1,8 +1,5 @@
 package io.github.hyeonmo.models.imaging;
 
-/**
- * Created by Hyeonmo Gu on 24/09/2025.
- */
 public enum ImagingType {
 	 GET_IMAGING_SETTINGS("IMAGINGSETTINGS"),
 	 FOCUS_MOVE("FOCUSMOVE"),

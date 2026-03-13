@@ -1,7 +1,9 @@
-package io.github.hyeonmo;
+package io.github.hyeonmo.managers;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import io.github.hyeonmo.core.OnvifExecutor;
 import io.github.hyeonmo.models.OnvifCapabilities;
 import io.github.hyeonmo.models.OnvifDevice;
 import io.github.hyeonmo.models.OnvifDeviceInformation;
@@ -15,12 +17,9 @@ import io.github.hyeonmo.requests.device.GetSystemDateAndTimeRequest;
 import io.github.hyeonmo.requests.media.GetMediaProfilesRequest;
 import io.github.hyeonmo.requests.media.GetMediaStreamRequest;
 import io.github.hyeonmo.requests.media.GetSnapshotRequest;
-import io.github.hyeonmo.responses.OnvifResponse;
 
 /**
  * Executes core ONVIF requests returning CompletableFutures for easy chaining.
- *
- * Modified by Hyeonmo Gu for v2.0
  */
 public class OnvifManager {
 
@@ -51,9 +50,16 @@ public class OnvifManager {
         return executor.sendRequest(device, request);
     }
 
-    public CompletableFuture<java.util.List<OnvifMediaProfile>> getMediaProfiles(OnvifDevice device) {
+    public CompletableFuture<List<OnvifMediaProfile>> getMediaProfiles(OnvifDevice device) {
+        if (device.getMediaProfiles() != null && !device.getMediaProfiles().isEmpty()) {
+            return CompletableFuture.completedFuture(device.getMediaProfiles());
+        }
         OnvifRequest request = new GetMediaProfilesRequest();
-        return executor.sendRequest(device, request);
+        return executor.<List<OnvifMediaProfile>>sendRequest(device, request)
+                .thenApply(profiles -> {
+                    device.setMediaProfiles(profiles);
+                    return profiles;
+                });
     }
 
     public CompletableFuture<String> getMediaStreamURI(OnvifDevice device, OnvifMediaProfile profile) {
@@ -62,8 +68,15 @@ public class OnvifManager {
     }
 
     public CompletableFuture<OnvifCapabilities> getCapabilities(OnvifDevice device) {
+        if (device.getCapabilities() != null) {
+            return CompletableFuture.completedFuture(device.getCapabilities());
+        }
         OnvifRequest request = new GetCapabilitiesRequest();
-        return executor.sendRequest(device, request);
+        return executor.<OnvifCapabilities>sendRequest(device, request)
+                .thenApply(caps -> {
+                    device.setCapabilities(caps);
+                    return caps;
+                });
     }
 
     public CompletableFuture<String> getSnapshotURI(OnvifDevice device, OnvifMediaProfile profile) {

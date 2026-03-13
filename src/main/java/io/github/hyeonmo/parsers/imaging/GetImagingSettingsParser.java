@@ -17,13 +17,10 @@ import io.github.hyeonmo.models.imaging.ImagingSettings;
 import io.github.hyeonmo.parsers.XMLParserUtils;
 import io.github.hyeonmo.responses.ImagingResponse;
 
-/**
- * Created by Hyeonmo Gu on 24/09/2025.
- */
 public class GetImagingSettingsParser extends ImagingParser<ImagingSettings> {
 
     @Override
-    public ImagingSettings parse(ImagingResponse response) {
+    public ImagingSettings parse(ImagingResponse<?> response) {
         ImagingSettings imagingSettings = new ImagingSettings();
         String xml = response.getXml();
 

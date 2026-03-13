@@ -14,22 +14,17 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import io.github.hyeonmo.OnvifUtils;
+import io.github.hyeonmo.utils.OnvifUtils;
 import io.github.hyeonmo.models.OnvifServices;
 import io.github.hyeonmo.models.OnvifType;
 import io.github.hyeonmo.parsers.OnvifParser;
 import io.github.hyeonmo.parsers.XMLParserUtils;
 import io.github.hyeonmo.responses.OnvifResponse;
 
-/**
- * Created by Tomas Verhelst on 06/09/2018.
- * Copyright (c) 2018 TELETASK BVBA. All rights reserved.
- *
- */
 public class GetServicesParser extends OnvifParser<OnvifServices> {
 
     @Override
-    public OnvifServices parse(OnvifResponse response) {
+    public OnvifServices parse(OnvifResponse<?> response) {
         OnvifServices services = new OnvifServices();
         String xml = response.getXml();
 
@@ -55,6 +50,12 @@ public class GetServicesParser extends OnvifParser<OnvifServices> {
                         String path = OnvifUtils.getPathFromURL(uri);
                         services.setProfilesPath(path);
                         services.setStreamURIPath(path);
+                    } else if (currentNamespace.equals(OnvifType.GET_PTZ.namespace)) {
+                        services.setPtzPath(OnvifUtils.getPathFromURL(uri));
+                    } else if (currentNamespace.equals(OnvifType.GET_IMAGING.namespace)) {
+                        services.setImagingPath(OnvifUtils.getPathFromURL(uri));
+                    } else if (currentNamespace.equals(OnvifType.GET_EVENTS.namespace)) {
+                        services.setEventsPath(OnvifUtils.getPathFromURL(uri));
                     }
                 }
             }

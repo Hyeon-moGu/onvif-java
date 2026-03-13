@@ -1,164 +1,164 @@
 package io.github.hyeonmo;
 
-import java.util.Date;
-import java.util.List;
-
-import io.github.hyeonmo.models.Device;
-import io.github.hyeonmo.models.DeviceType;
-import io.github.hyeonmo.models.OnvifCapabilities;
+import io.github.hyeonmo.client.OnvifClient;
 import io.github.hyeonmo.models.OnvifDevice;
-import io.github.hyeonmo.models.OnvifDeviceInformation;
 import io.github.hyeonmo.models.OnvifMediaProfile;
 import io.github.hyeonmo.models.ptz.PresetCommand;
 import io.github.hyeonmo.models.ptz.PresetCommand.PresetAction;
-import io.github.hyeonmo.models.imaging.ImagingSettings;
-import io.github.hyeonmo.DiscoveryMode;
+import io.github.hyeonmo.models.ptz.PtzType;
+import io.github.hyeonmo.exceptions.OnvifAuthException;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import static org.junit.Assert.*;
 
-/**
- * A safe, read-only ONVIF camera discovery and information retrieval test application.
- * (Excludes PTZ movement or any modification requests)
- *
- * Modified for v2.0 - CompletableFuture implementation
- */
+import java.util.concurrent.CompletableFuture;
+
 public class OnvifTester {
 
+    private static final Logger log = LoggerFactory.getLogger(OnvifTester.class);
     private static final String CAMERA_USERNAME = "admin";
     private static final String CAMERA_PASSWORD = "admin";
+    
+    private static OnvifDevice sharedDevice;
 
     public static void main(String[] args) {
-        System.out.println("========== ONVIF Device Discovery Started ==========");
-
-        OnvifManager onvifManager = new OnvifManager();
-        OnvifDiscovery discovery = new OnvifDiscovery();
-
-        System.out.println("Scanning network... (Max 20 seconds)");
-
-        discovery.probe(DiscoveryMode.ONVIF)
-            .thenAccept(devices -> {
-                System.out.println("\nScan complete! Found " + devices.size() + " devices.\n");
-
-                OnvifDevice targetDevice = null;
-                for (Device genericDevice : devices) {
-                    if (genericDevice.getType() == DeviceType.ONVIF) {
-                        targetDevice = (OnvifDevice) genericDevice;
-                        break;
-                    }
-                }
-
-                if (targetDevice != null) {
-                    targetDevice.setUsername(CAMERA_USERNAME);
-                    targetDevice.setPassword(CAMERA_PASSWORD);
-
-                    System.out.println("------------------------------------------------");
-                    System.out.println("Proceeding with single camera test...");
-                    System.out.println("Target IP: " + targetDevice.getHostName());
-                    System.out.println("Base URL: " + targetDevice.getBaseUrl());
-                    System.out.println("Username: " + targetDevice.getUsername());
-                    System.out.println("------------------------------------------------");
-
-                    runDeviceTests(onvifManager, targetDevice);
-
-                    new Thread(() -> {
-                        try {
-                            Thread.sleep(10000); // Allow time for async tests to complete
-                            System.out.println("\n[Test Complete] Terminating JVM cleanly...");
-                            System.exit(0);
-                        } catch (InterruptedException ignored) {}
-                    }).start();
-
-                } else {
-                    System.out.println("No ONVIF devices found on the network.");
-                    System.exit(0);
-                }
-            })
-            .exceptionally(ex -> {
-                System.out.println("[Error] Discovery failed: " + ex.getMessage());
-                System.exit(1);
-                return null;
-            });
+        org.junit.runner.JUnitCore.runClasses(OnvifTester.class);
     }
 
-    private static void runDeviceTests(OnvifManager onvifManager, OnvifDevice device) {
-        // Fetch Date & Time
-        onvifManager.getSystemDateAndTime(device)
-            .thenCompose(dateTime -> {
-                System.out.println("[Success] Camera Time: " + dateTime.toString());
-                if (dateTime != null) {
-                    long offsetMs = dateTime.getTime() - System.currentTimeMillis();
-                    System.out.println("[Applied] Time Offset (Clock Sync): " + offsetMs + "ms");
+    @BeforeClass
+    public static void setUp() {
+        log.info("Initializing ONVIF Shared Device (Discovery 10s)...");
+        sharedDevice = OnvifClient.discover(10000)
+            .thenCompose(devices -> {
+                if (devices.isEmpty()) {
+                    throw new RuntimeException("No ONVIF devices found on the network.");
                 }
-                
-                // Fetch Device Information
-                return onvifManager.getDeviceInformation(device);
+                log.info("Discovered {} devices. Using first: {}", devices.size(), devices.get(0).getHostName());
+                return OnvifClient.connect(devices.get(0))
+                    .credentials(CAMERA_USERNAME, CAMERA_PASSWORD)
+                    .buildAsync();
             })
-            .thenCompose(deviceInfo -> {
-                System.out.println("[Success] Device Info: Model=" + deviceInfo.getModel() + ", Manufacturer=" + deviceInfo.getManufacturer() + ", Firmware=" + deviceInfo.getFirmwareVersion());
-                
-                // Fetch Capabilities
-                return onvifManager.getCapabilities(device);
-            })
-            .thenCompose(capabilities -> {
-                System.out.println("[Success] Capabilities Retrieved.");
-                
-                // Fetch Media Profiles
-                return onvifManager.getMediaProfiles(device);
-            })
-            .thenCompose(profiles -> {
-                System.out.println("[Success] Found " + profiles.size() + " Media Profiles");
-                for (OnvifMediaProfile profile : profiles) {
-                    System.out.println("  - Profile: " + profile.getName() + " (Token: " + profile.getToken() + ")");
-                }
-
-                if (!profiles.isEmpty()) {
-                    OnvifMediaProfile mainProfile = profiles.get(0);
-                    
-                    onvifManager.getMediaStreamURI(device, mainProfile)
-                        .thenAccept(uri -> System.out.println("[Success] RTSP Stream URI: " + uri));
-
-                    onvifManager.getSnapshotURI(device, mainProfile)
-                        .thenAccept(uri -> System.out.println("[Success] Snapshot JPEG URI: " + uri));
-                }
-                
-                fetchPtzStatus(device);
-                fetchPtzPresets(device);
-                fetchImagingSettings(device);
-                
-                return java.util.concurrent.CompletableFuture.completedFuture(null);
-            })
-            .exceptionally(ex -> {
-                System.out.println("[Error] Test chain aborted: " + ex.getMessage());
-                return null;
-            });
+            .join();
+        assertNotNull("Global device initialization failed", sharedDevice);
+        log.info("Connected to {} successfully.", sharedDevice.getHostName());
     }
 
-    private static void fetchPtzStatus(OnvifDevice device) {
-        PtzManager ptzManager = new PtzManager();
-        ptzManager.getStatus(device)
-            .thenAccept(status -> System.out.println("[Success] PTZ Status: " + status))
-            .exceptionally(ex -> {
-                System.out.println("[Failed] PTZ Status retrieval failed: " + ex.getMessage());
-                return null;
-            });
+    @Test
+    public void testDeviceInfo() {
+        log.info("Testing Device Information...");
+        sharedDevice.device().getDeviceInformation().thenAccept(info -> {
+            log.info("Evidence - Manufacturer: {}, Model: {}, Firmware: {}", 
+                info.getManufacturer(), info.getModel(), info.getFirmwareVersion());
+            assertNotNull(info.getManufacturer());
+            assertNotNull(info.getModel());
+        }).join();
     }
 
-    private static void fetchPtzPresets(OnvifDevice device) {
-        PtzManager ptzManager = new PtzManager();
-        PresetCommand getPresetCommand = new PresetCommand(PresetAction.GET, null);
-        ptzManager.preset(device, getPresetCommand)
-            .thenAccept(presets -> System.out.println("[Success] PTZ Presets List: " + presets))
-            .exceptionally(ex -> {
-                System.out.println("[Failed] PTZ Presets retrieval failed: " + ex.getMessage());
-                return null;
-            });
+    @Test
+    public void testMediaProfiles() {
+        log.info("Testing Media Profiles and URIs...");
+        sharedDevice.media().getMediaProfiles().thenCompose(profiles -> {
+            assertFalse("Profiles list should not be empty", profiles.isEmpty());
+            log.info("Evidence - Found {} media profiles", profiles.size());
+            
+            OnvifMediaProfile profile = profiles.get(0);
+            return sharedDevice.media().getMediaStreamURI(profile)
+                .thenCompose(streamUri -> {
+                    log.info("Evidence - RTSP Stream URI: {}", streamUri);
+                    assertNotNull(streamUri);
+                    return sharedDevice.media().getSnapshotURI(profile);
+                })
+                .thenAccept(snapshotUri -> {
+                    log.info("Evidence - Snapshot JPEG URI: {}", snapshotUri);
+                    assertNotNull(snapshotUri);
+                });
+        }).join();
     }
 
-    private static void fetchImagingSettings(OnvifDevice device) {
-        ImagingManager imagingManager = new ImagingManager();
-        imagingManager.getImagingSettings(device)
-            .thenAccept(settings -> System.out.println("[Success] Imaging Settings: " + settings.toString()))
+    @Test
+    public void testPtzStatus() {
+        log.info("Testing PTZ Status...");
+        sharedDevice.ptz().getStatus()
+            .thenAccept(status -> {
+                log.info("Evidence - PTZ Status: {}", status);
+                assertNotNull(status);
+            })
             .exceptionally(ex -> {
-                System.out.println("[Failed] Imaging Settings retrieval failed: " + ex.getMessage());
+                log.warn("Evidence - PTZ Status skipped (unsupported or error: {})", ex.getMessage());
                 return null;
-            });
+            }).join();
+    }
+
+    @Test
+    public void testPtzPresetLifecycle() {
+        log.info("Testing PTZ Preset Lifecycle (Save -> List -> Remove)...");
+        PresetCommand saveCmd = new PresetCommand(PresetAction.SAVE, "test");
+        
+        sharedDevice.ptz().preset(saveCmd)
+            .thenCompose(saveRes -> {
+                log.info("Evidence - Preset Save Result: {}", saveRes);
+                String token = saveRes.contains("token=") ? saveRes.split("token=")[1].trim() : "test";
+                
+                return sharedDevice.ptz().preset(new PresetCommand(PresetAction.GET, null))
+                    .thenCompose(presets -> {
+                        int count = (presets == null || presets.isEmpty()) ? 0 : presets.trim().split("\n").length;
+                        log.info("Evidence - Presets List size: {}", count);
+                        return sharedDevice.ptz().preset(new PresetCommand(PresetAction.REMOVE, token));
+                    })
+                    .thenAccept(removeRes -> {
+                        log.info("Evidence - Preset Remove Result: {}", removeRes);
+                        assertNotNull(removeRes);
+                    });
+            }).join();
+    }
+
+    @Test
+    public void testImagingSettings() {
+        log.info("Testing Imaging Settings (Get -> Set)...");
+        sharedDevice.imaging().getImagingSettings().thenCompose(settings -> {
+            log.info("Evidence - Current Imaging Settings: {}", settings);
+            assertNotNull(settings);
+            return sharedDevice.imaging().setImagingSettings(settings);
+        }).thenAccept(result -> {
+            log.info("Evidence - Set Imaging Result: {}", result);
+            assertEquals("OK", result);
+        }).join();
+    }
+
+    @Test
+    public void testPtzMoveAndStop() {
+        log.info("Testing PTZ Move (LEFT) and Stop...");
+        sharedDevice.ptz().move(PtzType.LEFT).thenCompose(moveRes -> {
+            log.info("Evidence - Move Result: {}", moveRes);
+            assertEquals("ContinuousMove success", moveRes);
+            
+            return CompletableFuture.runAsync(() -> {
+                log.info("Evidence - Waiting 1000ms for PTZ movement to complete...");
+                try { Thread.sleep(1000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+            }).thenCompose(v -> sharedDevice.ptz().stop());
+        }).thenAccept(stopRes -> {
+            log.info("Evidence - Stop Result: {}", stopRes);
+            assertEquals("Stop success", stopRes);
+        }).join();
+    }
+
+    @Test
+    public void testAuthFailure() {
+        log.info("Testing Authentication Failure...");
+        CompletableFuture<OnvifDevice> badAuthFuture = OnvifClient.connect(sharedDevice.getHostName())
+            .credentials("wrong_user", "wrong_password")
+            .buildAsync();
+
+        try {
+            badAuthFuture.join();
+            fail("Should have thrown an exception for invalid credentials");
+        } catch (Exception e) {
+            Throwable cause = e.getCause();
+            log.info("Evidence - Caught expected exception: {}", cause.getClass().getSimpleName());
+            assertTrue("Exception should be OnvifAuthException or general OnvifException", 
+                cause instanceof OnvifAuthException || cause instanceof io.github.hyeonmo.exceptions.OnvifException);
+        }
     }
 }

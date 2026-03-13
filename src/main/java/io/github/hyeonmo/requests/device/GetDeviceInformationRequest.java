@@ -3,11 +3,6 @@ package io.github.hyeonmo.requests.device;
 import io.github.hyeonmo.models.OnvifType;
 import io.github.hyeonmo.requests.OnvifRequest;
 
-/**
- * Created by Tomas Verhelst on 04/09/2018.
- * Copyright (c) 2018 TELETASK BVBA. All rights reserved.
- * Modified for v2.0 - callback removed.
- */
 public class GetDeviceInformationRequest implements OnvifRequest {
 
     public static final String TAG = GetDeviceInformationRequest.class.getSimpleName();

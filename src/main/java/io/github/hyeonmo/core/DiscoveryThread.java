@@ -1,10 +1,9 @@
-package io.github.hyeonmo;
+package io.github.hyeonmo.core;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketTimeoutException;
 
-import io.github.hyeonmo.DiscoveryCallback;
 import io.github.hyeonmo.parsers.DiscoveryParser;
 import io.github.hyeonmo.responses.OnvifResponse;
 
@@ -44,7 +43,7 @@ public class DiscoveryThread extends Thread {
                 server.receive(packet);
                 String response = new String(packet.getData(), 0, packet.getLength(), "UTF-8");
                 parser.setHostName(packet.getAddress().getHostName());
-                callback.onDevicesFound(parser.parse(new OnvifResponse(response)));
+                callback.onDevicesFound(parser.parse(new OnvifResponse<>(response)));
             }
 
         }catch (SocketTimeoutException ignore) {

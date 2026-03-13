@@ -1,8 +1,5 @@
 package io.github.hyeonmo.models.ptz;
 
-/**
- * Created by Hyeonmo Gu on 17/09/2025.
- */
 public class PresetCommand {
 
     public enum PresetAction {

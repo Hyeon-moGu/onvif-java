@@ -18,9 +18,6 @@ import io.github.hyeonmo.parsers.OnvifParser;
 import io.github.hyeonmo.parsers.XMLParserUtils;
 import io.github.hyeonmo.responses.OnvifResponse;
 
-/**
- * Created by Hyeonmo Gu on 17/09/2025.
- */
 public class GetCapabilitiesParser extends OnvifParser<OnvifCapabilities> {
 
     private static final String KEY_DEVICE = "Device";

@@ -22,11 +22,6 @@ import io.github.hyeonmo.parsers.OnvifParser;
 import io.github.hyeonmo.parsers.XMLParserUtils;
 import io.github.hyeonmo.responses.OnvifResponse;
 
-/**
- * Created by Tomas Verhelst on 06/09/2018.
- * Copyright (c) 2018 TELETASK BVBA. All rights reserved.
- *
- */
 public class GetMediaProfilesParser extends OnvifParser<List<OnvifMediaProfile>> {
 
     private static final String KEY_PROFILES = "Profiles";

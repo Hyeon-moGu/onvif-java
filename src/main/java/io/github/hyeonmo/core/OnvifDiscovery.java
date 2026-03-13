@@ -1,4 +1,4 @@
-package io.github.hyeonmo;
+package io.github.hyeonmo.core;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -9,12 +9,10 @@ import java.net.InterfaceAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -22,16 +20,13 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import io.github.hyeonmo.DiscoveryCallback;
+
 import io.github.hyeonmo.models.Device;
-import io.github.hyeonmo.DiscoveryCallback;
 import io.github.hyeonmo.models.DiscoveryPacket;
 import io.github.hyeonmo.models.OnvifPacket;
 
 /**
  * The OnvifDiscovery class uses the Web Services Dynamic Discovery (WS-Discovery).
- *
- * Modified by Hyeonmo Gu for v2.0
  */
 public class OnvifDiscovery {
 
@@ -40,12 +35,10 @@ public class OnvifDiscovery {
     private static final String MULTICAST_ADDRESS_IPV6 = "[FF02::C]";
     private static int DISCOVERY_TIMEOUT = 10000;
 
-    private static final Random random = new SecureRandom();
-
     private int discoveryTimeout = DISCOVERY_TIMEOUT;
     private DiscoveryMode mode;
 
-    OnvifDiscovery() {
+    public OnvifDiscovery() {
         this(DiscoveryMode.ONVIF);
     }
 
@@ -53,23 +46,23 @@ public class OnvifDiscovery {
         this.mode = mode;
     }
 
-    int getDiscoveryTimeout() {
+    public int getDiscoveryTimeout() {
         return discoveryTimeout;
     }
 
-    void setDiscoveryTimeout(int timeoutMs) {
+    public void setDiscoveryTimeout(int timeoutMs) {
         discoveryTimeout = timeoutMs;
     }
 
-    DiscoveryMode getDiscoveryMode() {
+    public DiscoveryMode getDiscoveryMode() {
         return mode;
     }
 
-    void setDiscoveryMode(DiscoveryMode mode) {
+    public void setDiscoveryMode(DiscoveryMode mode) {
         this.mode = mode;
     }
 
-    CompletableFuture<List<Device>> probe(DiscoveryMode mode) {
+    public CompletableFuture<List<Device>> probe(DiscoveryMode mode) {
         this.mode = mode;
         List<InetAddress> addresses = getInterfaceAddresses();
         return broadcast(addresses);
@@ -157,13 +150,13 @@ public class OnvifDiscovery {
         return new DiscoveryPacket(uuid, mode);
     }
 
-    List<InetAddress> getInterfaceAddresses() {
+    public List<InetAddress> getInterfaceAddresses() {
         List<InetAddress> addresses = new ArrayList<>();
         try {
-            Enumeration interfaces = NetworkInterface.getNetworkInterfaces();
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
 
             while (interfaces.hasMoreElements()) {
-                NetworkInterface networkInterface = (NetworkInterface) interfaces.nextElement();
+                NetworkInterface networkInterface = interfaces.nextElement();
 
                 if (networkInterface.isLoopback() || !networkInterface.isUp()) {
                     continue; 
@@ -180,13 +173,13 @@ public class OnvifDiscovery {
         return addresses;
     }
 
-    List<InetAddress> getBroadcastAddresses() {
+    public List<InetAddress> getBroadcastAddresses() {
         List<InetAddress> addresses = new ArrayList<>();
         try {
-            Enumeration interfaces = NetworkInterface.getNetworkInterfaces();
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
 
             while (interfaces.hasMoreElements()) {
-                NetworkInterface networkInterface = (NetworkInterface) interfaces.nextElement();
+                NetworkInterface networkInterface = interfaces.nextElement();
 
                 if (networkInterface.isLoopback() || !networkInterface.isUp()) {
                     continue; 
@@ -208,7 +201,7 @@ public class OnvifDiscovery {
         return addresses;
     }
 
-    String getLocalIpAddress() {
+    public String getLocalIpAddress() {
 
         try {
             for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements(); ) {

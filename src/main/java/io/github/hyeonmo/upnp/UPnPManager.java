@@ -4,10 +4,6 @@ import org.jetbrains.annotations.Nullable;
 
 import io.github.hyeonmo.models.UPnPDevice;
 
-/**
- * Created by Tomas Verhelst on 06/09/2018.
- * Copyright (c) 2018 TELETASK BVBA. All rights reserved.
- */
 public class UPnPManager implements UPnPResponseListener {
 
     //Constants

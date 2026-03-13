@@ -3,10 +3,6 @@ package io.github.hyeonmo.requests.imaging;
 import io.github.hyeonmo.models.imaging.ImagingSettings;
 import io.github.hyeonmo.models.imaging.ImagingType;
 
-/**
- * Created by Hyeonmo Gu on 24/09/2025.
- * Modified for v2.0 - callback removed.
- */
 public class ImagingSettingRequest implements ImagingRequest {
 
     public static final String TAG = ImagingSettingRequest.class.getSimpleName();

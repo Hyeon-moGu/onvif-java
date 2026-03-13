@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.github.hyeon-mogu</groupId>
     <artifactId>onvif-java</artifactId>
-    <version>1.1.0</version>
+    <version>1.2.0</version>
 
     <name>onvif-java</name>
 	<description>
@@ -79,6 +79,19 @@
             <groupId>io.github.rburgst</groupId>
             <artifactId>okhttp-digest</artifactId>
             <version>${okhttp-digest.version}</version>
+        </dependency>
+
+        <!-- Logging -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.32</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>1.7.32</version>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>

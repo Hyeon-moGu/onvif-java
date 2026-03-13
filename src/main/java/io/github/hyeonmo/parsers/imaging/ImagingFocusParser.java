@@ -2,12 +2,9 @@ package io.github.hyeonmo.parsers.imaging;
 
 import io.github.hyeonmo.responses.ImagingResponse;
 
-/**
- * Created by Hyeonmo Gu on 24/09/2025.
- */
 public class ImagingFocusParser {
 
-	public ImagingResponse parser(ImagingResponse response) {
+	public ImagingResponse<?> parser(ImagingResponse<?> response) {
 		String xml = response.getXml();
 
 		if (xml == null || xml.isEmpty()) {

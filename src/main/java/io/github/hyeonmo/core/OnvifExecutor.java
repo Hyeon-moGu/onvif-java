@@ -1,4 +1,4 @@
-package io.github.hyeonmo;
+package io.github.hyeonmo.core;
 
 import java.io.IOException;
 import java.util.Map;
@@ -14,11 +14,6 @@ import com.burgstaller.okhttp.digest.DigestAuthenticator;
 
 import io.github.hyeonmo.exceptions.OnvifExceptionFactory;
 import io.github.hyeonmo.models.OnvifDevice;
-import io.github.hyeonmo.models.OnvifServices;
-import io.github.hyeonmo.models.OnvifCapabilities;
-import io.github.hyeonmo.models.OnvifDeviceInformation;
-import io.github.hyeonmo.models.OnvifMediaProfile;
-import io.github.hyeonmo.models.imaging.ImagingSettings;
 import io.github.hyeonmo.parsers.device.GetCapabilitiesParser;
 import io.github.hyeonmo.parsers.device.GetDeviceInformationParser;
 import io.github.hyeonmo.parsers.device.GetServicesParser;
@@ -26,15 +21,7 @@ import io.github.hyeonmo.parsers.media.GetMediaProfilesParser;
 import io.github.hyeonmo.parsers.media.GetMediaStreamParser;
 import io.github.hyeonmo.parsers.media.GetSnapshotParser;
 import io.github.hyeonmo.parsers.device.GetSystemDateAndTimeParser;
-import io.github.hyeonmo.parsers.imaging.GetImagingSettingsParser;
 import io.github.hyeonmo.requests.OnvifRequest;
-import io.github.hyeonmo.requests.device.GetCapabilitiesRequest;
-import io.github.hyeonmo.requests.device.GetDeviceInformationRequest;
-import io.github.hyeonmo.requests.device.GetServicesRequest;
-import io.github.hyeonmo.requests.media.GetMediaProfilesRequest;
-import io.github.hyeonmo.requests.media.GetMediaStreamRequest;
-import io.github.hyeonmo.requests.media.GetSnapshotRequest;
-import io.github.hyeonmo.requests.device.GetSystemDateAndTimeRequest;
 import io.github.hyeonmo.responses.OnvifResponse;
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -47,8 +34,6 @@ import okhttp3.ResponseBody;
 
 /**
  * Executes ONVIF SOAP Requests asynchronously, returning CompletableFutures.
- *
- * Modified by Hyeonmo Gu for v2.0
  */
 public class OnvifExecutor {
 
@@ -65,7 +50,7 @@ public class OnvifExecutor {
                 .readTimeout(10000, TimeUnit.MILLISECONDS)
                 .build();
 
-        reqBodyType = MediaType.parse("application/soap+xml; charset=utf-8;");
+        reqBodyType = MediaType.parse("application/soap+xml; charset=utf-8");
     }
 
     private OkHttpClient getClientForDevice(String hostName, String username, String password) {
@@ -90,13 +75,12 @@ public class OnvifExecutor {
         CompletableFuture<T> future = new CompletableFuture<>();
         
         AuthXMLBuilder builder = new AuthXMLBuilder(username, password, timeOffsetMs);
-        RequestBody reqBody = RequestBody.create(reqBodyType, builder.getAuthHeader() + request.getXml() + builder.getAuthEnd());
-        
+        String xmlPayload = builder.getAuthHeader() + request.getXml() + builder.getAuthEnd();
+        RequestBody reqBody = RequestBody.create(reqBodyType, xmlPayload);
         String url = (baseUrl == null || baseUrl.isEmpty()) ? hostName + path : baseUrl + path;
-        
+
         Request xmlRequest = new Request.Builder()
                 .url(url)
-                .addHeader("Content-Type", "text/xml; charset=utf-8")
                 .post(reqBody)
                 .build();
 
@@ -105,12 +89,13 @@ public class OnvifExecutor {
         client.newCall(xmlRequest).enqueue(new Callback() {
             @Override
             public void onResponse(Call call, Response xmlResponse) throws IOException {
-                OnvifResponse response = new OnvifResponse(request);
+                OnvifResponse<?> response = new OnvifResponse<>(request);
                 ResponseBody xmlBody = xmlResponse.body();
-                
-                if (xmlResponse.code() == 200 && xmlBody != null) {
+                String responseBody = xmlBody != null ? xmlBody.string() : "";
+
+                if (xmlResponse.isSuccessful()) {
                     response.setSuccess(true);
-                    response.setXml(xmlBody.string());
+                    response.setXml(responseBody);
                     try {
                     	T result = parseResponseAsFutureResult(response);
                         future.complete(result);
@@ -118,8 +103,7 @@ public class OnvifExecutor {
                     	future.completeExceptionally(e);
                     }
                 } else {
-                    String errorMessage = xmlBody != null ? xmlBody.string() : "";
-                    future.completeExceptionally(OnvifExceptionFactory.fromHttpError(xmlResponse.code(), errorMessage));
+                    future.completeExceptionally(OnvifExceptionFactory.fromHttpError(xmlResponse.code(), responseBody));
                 }
             }
 
@@ -133,7 +117,7 @@ public class OnvifExecutor {
     }
 
     @SuppressWarnings("unchecked")
-	private <T> T parseResponseAsFutureResult(OnvifResponse response) {
+	private <T> T parseResponseAsFutureResult(OnvifResponse<?> response) {
         switch (response.request().getType()) {
             case GET_SERVICES:
                 return (T) new GetServicesParser().parse(response);
@@ -150,7 +134,6 @@ public class OnvifExecutor {
             case GET_SYSTEM_DATE_AND_TIME:
                 return (T) new GetSystemDateAndTimeParser().parse(response);
             default:
-                // For requests that don't need dedicated parsers (like PTZ move/stop)
                 return (T) response;
         }
     }
@@ -168,6 +151,12 @@ public class OnvifExecutor {
                 return device.getPath().getProfilesPath();
             case GET_STREAM_URI:
                 return device.getPath().getStreamURIPath();
+            case GET_PTZ:
+                return device.getPath().getPtzPath();
+            case GET_IMAGING:
+                return device.getPath().getImagingPath();
+            case GET_EVENTS:
+                return device.getPath().getEventsPath();
             default:
                 return device.getPath().getServicesPath();
         }

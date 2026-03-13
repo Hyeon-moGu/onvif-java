@@ -1,4 +1,4 @@
-package io.github.hyeonmo;
+package io.github.hyeonmo.core;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
@@ -9,11 +9,8 @@ import io.github.hyeonmo.models.OnvifDevice;
 import io.github.hyeonmo.parsers.imaging.GetImagingSettingsParser;
 import io.github.hyeonmo.parsers.imaging.ImagingFocusParser;
 import io.github.hyeonmo.parsers.imaging.ImagingSettingRequestParser;
-import io.github.hyeonmo.requests.imaging.GetImagingSettingsRequest;
-import io.github.hyeonmo.requests.imaging.ImagingFocusRequest;
-import io.github.hyeonmo.requests.imaging.ImagingFocusStopRequest;
 import io.github.hyeonmo.requests.imaging.ImagingRequest;
-import io.github.hyeonmo.requests.imaging.ImagingSettingRequest;
+
 import io.github.hyeonmo.responses.ImagingResponse;
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -24,11 +21,6 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 
-/**
- * Executes Imaging requests synchronously via CompletableFuture. 
- * Created by Hyeonmo Gu on 24/09/2025.
- * Modified by Hyeonmo Gu for v2.0
- */
 public class ImagingExecutor {
 
 	public static final String TAG = ImagingExecutor.class.getSimpleName();
@@ -58,7 +50,7 @@ public class ImagingExecutor {
 		return xmlRequest(request, buildOnvifRequest(request, reqBody));
 	}
 
-	void destroy() {
+	public void destroy() {
 		if (client != null) {
 			client.dispatcher().executorService().shutdown();
 			client.connectionPool().evictAll();
@@ -76,7 +68,7 @@ public class ImagingExecutor {
 		client.newCall(xml).enqueue(new Callback() {
 			@Override
 			public void onResponse(Call call, Response xmlResponse) throws IOException {
-				ImagingResponse response = new ImagingResponse(request);
+				ImagingResponse<?> response = new ImagingResponse<>(request);
 				ResponseBody xmlBody = xmlResponse.body();
 
 				if (xmlResponse.code() == 200 && xmlBody != null) {
@@ -104,15 +96,27 @@ public class ImagingExecutor {
 	}
 
 	@SuppressWarnings("unchecked")
-	private <T> T parseResponseAsFutureResult(ImagingResponse response) {
+	private <T> T parseResponseAsFutureResult(ImagingResponse<?> response) {
 	    switch (response.request().getImagingType()) {
 	        case GET_IMAGING_SETTINGS:
 	            return (T) new GetImagingSettingsParser().parse(response);
 	        case FOCUS_MOVE:
-	        case FOCUS_STOP:
-	            return (T) new ImagingFocusParser().parser(response);
-	        case SET_SETTINGS:
-	        	return (T) new ImagingSettingRequestParser().parser(response);
+	        case FOCUS_STOP: {
+	            ImagingResponse<?> parsed = new ImagingFocusParser().parser(response);
+	            if (parsed.isSuccess()) {
+	                return (T) "OK";
+	            } else {
+	                throw new RuntimeException(parsed.getErrorMessage());
+	            }
+	        }
+	        case SET_SETTINGS: {
+	            ImagingResponse<?> parsed = new ImagingSettingRequestParser().parser(response);
+	            if (parsed.isSuccess()) {
+	                return (T) "OK";
+	            } else {
+	                throw new RuntimeException(parsed.getErrorMessage());
+	            }
+	        }
 	        default:
 	            return (T) response;
 	    }

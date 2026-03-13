@@ -3,10 +3,6 @@ package io.github.hyeonmo.models;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by Tomas Verhelst on 05/09/2018.
- * Copyright (c) 2018 TELETASK BVBA. All rights reserved.
- */
 public class OnvifPacket {
 
     //Constants
