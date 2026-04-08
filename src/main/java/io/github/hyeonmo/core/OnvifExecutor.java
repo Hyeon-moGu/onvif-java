@@ -17,10 +17,13 @@ import io.github.hyeonmo.models.OnvifDevice;
 import io.github.hyeonmo.parsers.device.GetCapabilitiesParser;
 import io.github.hyeonmo.parsers.device.GetDeviceInformationParser;
 import io.github.hyeonmo.parsers.device.GetServicesParser;
+import io.github.hyeonmo.parsers.events.EventSubscriptionStatusParser;
 import io.github.hyeonmo.parsers.media.GetMediaProfilesParser;
 import io.github.hyeonmo.parsers.media.GetMediaStreamParser;
 import io.github.hyeonmo.parsers.media.GetSnapshotParser;
 import io.github.hyeonmo.parsers.device.GetSystemDateAndTimeParser;
+import io.github.hyeonmo.parsers.events.CreatePullPointSubscriptionParser;
+import io.github.hyeonmo.parsers.events.PullMessagesParser;
 import io.github.hyeonmo.requests.OnvifRequest;
 import io.github.hyeonmo.responses.OnvifResponse;
 import okhttp3.Call;
@@ -47,7 +50,7 @@ public class OnvifExecutor {
         baseClient = new OkHttpClient.Builder()
                 .connectTimeout(10000, TimeUnit.MILLISECONDS)
                 .writeTimeout(100000, TimeUnit.MILLISECONDS)
-                .readTimeout(10000, TimeUnit.MILLISECONDS)
+                .readTimeout(60000, TimeUnit.MILLISECONDS)
                 .build();
 
         reqBodyType = MediaType.parse("application/soap+xml; charset=utf-8");
@@ -70,14 +73,41 @@ public class OnvifExecutor {
     public <T> CompletableFuture<T> sendRequest(OnvifDevice device, OnvifRequest request) {
     	return sendRequest(device.getHostName(), device.getBaseUrl(), device.getUsername(), device.getPassword(), device.getTimeOffsetMs(), getPathForRequest(device, request), request);
     }
+
+    public <T> CompletableFuture<T> sendRequest(OnvifDevice device, String fullUrl, OnvifRequest request) {
+        return sendRequest(device, fullUrl, "", request);
+    }
+
+    public <T> CompletableFuture<T> sendRequest(OnvifDevice device, String fullUrl, String additionalHeaderXml, OnvifRequest request) {
+        return sendRequest(device.getHostName(), null, device.getUsername(), device.getPassword(), device.getTimeOffsetMs(), fullUrl, true, additionalHeaderXml, request);
+    }
     
     public <T> CompletableFuture<T> sendRequest(String hostName, String baseUrl, String username, String password, long timeOffsetMs, String path, OnvifRequest request) {
+        return sendRequest(hostName, baseUrl, username, password, timeOffsetMs, path, false, "", request);
+    }
+
+    public <T> CompletableFuture<T> sendRequest(String hostName, String baseUrl, String username, String password, long timeOffsetMs, String pathOrUrl, boolean isFullUrl, String additionalHeaderXml, OnvifRequest request) {
         CompletableFuture<T> future = new CompletableFuture<>();
         
+        String url;
+        if (isFullUrl) {
+            url = pathOrUrl;
+        } else {
+            url = (baseUrl == null || baseUrl.isEmpty()) ? hostName + pathOrUrl : baseUrl + pathOrUrl;
+        }
+
         AuthXMLBuilder builder = new AuthXMLBuilder(username, password, timeOffsetMs);
+        String action = request.getAction();
+        if (action != null && !action.isEmpty()) {
+            builder.setWsaAction(action);
+            builder.setWsaTo(url);
+        }
+        if (additionalHeaderXml != null && !additionalHeaderXml.isEmpty()) {
+            builder.setAdditionalHeaderXml(additionalHeaderXml);
+        }
+
         String xmlPayload = builder.getAuthHeader() + request.getXml() + builder.getAuthEnd();
         RequestBody reqBody = RequestBody.create(reqBodyType, xmlPayload);
-        String url = (baseUrl == null || baseUrl.isEmpty()) ? hostName + path : baseUrl + path;
 
         Request xmlRequest = new Request.Builder()
                 .url(url)
@@ -133,6 +163,14 @@ public class OnvifExecutor {
                 return (T) new GetSnapshotParser().parse(response);
             case GET_SYSTEM_DATE_AND_TIME:
                 return (T) new GetSystemDateAndTimeParser().parse(response);
+            case CREATE_PULLPOINT_SUBSCRIPTION:
+                return (T) new CreatePullPointSubscriptionParser().parse(response);
+            case PULL_MESSAGES:
+                return (T) new PullMessagesParser().parse(response);
+            case RENEW:
+                return (T) new EventSubscriptionStatusParser().parse(response);
+            case UNSUBSCRIBE:
+                return null;
             default:
                 return (T) response;
         }
@@ -156,6 +194,10 @@ public class OnvifExecutor {
             case GET_IMAGING:
                 return device.getPath().getImagingPath();
             case GET_EVENTS:
+            case CREATE_PULLPOINT_SUBSCRIPTION:
+            case PULL_MESSAGES:
+            case RENEW:
+            case UNSUBSCRIBE:
                 return device.getPath().getEventsPath();
             default:
                 return device.getPath().getServicesPath();

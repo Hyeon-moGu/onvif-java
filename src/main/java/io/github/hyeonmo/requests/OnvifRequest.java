@@ -8,4 +8,8 @@ public interface OnvifRequest {
 
     OnvifType getType();
 
+    default String getAction() {
+        return "";
+    }
+
 }

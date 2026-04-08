@@ -14,6 +14,8 @@ import io.github.hyeonmo.operations.impl.DeviceOperationsImpl;
 import io.github.hyeonmo.operations.impl.MediaOperationsImpl;
 import io.github.hyeonmo.operations.impl.PtzOperationsImpl;
 import io.github.hyeonmo.operations.impl.ImagingOperationsImpl;
+import io.github.hyeonmo.operations.EventOperations;
+import io.github.hyeonmo.operations.impl.EventOperationsImpl;
 
 public class OnvifDevice extends Device {
 
@@ -34,6 +36,7 @@ public class OnvifDevice extends Device {
     private transient MediaOperations mediaOperations;
     private transient PtzOperations ptzOperations;
     private transient ImagingOperations imagingOperations;
+    private transient EventOperations eventOperations;
 
     //Constructors
     public OnvifDevice(String hostName) {
@@ -112,6 +115,11 @@ public class OnvifDevice extends Device {
     public ImagingOperations imaging() {
         if (imagingOperations == null) imagingOperations = new ImagingOperationsImpl(this);
         return imagingOperations;
+    }
+
+    public EventOperations event() {
+        if (eventOperations == null) eventOperations = new EventOperationsImpl(this);
+        return eventOperations;
     }
 
     public OnvifCapabilities getCapabilities() {

@@ -9,6 +9,7 @@ import io.github.hyeonmo.operations.DeviceOperations;
 import io.github.hyeonmo.operations.ImagingOperations;
 import io.github.hyeonmo.operations.MediaOperations;
 import io.github.hyeonmo.operations.PtzOperations;
+import io.github.hyeonmo.operations.EventOperations;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -157,5 +158,10 @@ public class OnvifClient {
     public ImagingOperations imaging() {
         checkDeviceInitialized();
         return existingDevice.imaging();
+    }
+
+    public EventOperations event() {
+        checkDeviceInitialized();
+        return existingDevice.event();
     }
 }

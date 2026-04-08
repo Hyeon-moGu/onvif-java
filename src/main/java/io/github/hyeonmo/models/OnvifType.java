@@ -11,7 +11,11 @@ public enum OnvifType {
     GET_SYSTEM_DATE_AND_TIME("http://www.onvif.org/ver10/device/wsdl"),
     GET_PTZ("http://www.onvif.org/ver20/ptz/wsdl"),
     GET_IMAGING("http://www.onvif.org/ver20/imaging/wsdl"),
-    GET_EVENTS("http://www.onvif.org/ver10/events/wsdl");
+    GET_EVENTS("http://www.onvif.org/ver10/events/wsdl"),
+    CREATE_PULLPOINT_SUBSCRIPTION("http://www.onvif.org/ver10/events/wsdl"),
+    PULL_MESSAGES("http://www.onvif.org/ver10/events/wsdl"),
+    RENEW("http://www.onvif.org/ver10/events/wsdl"),
+    UNSUBSCRIBE("http://www.onvif.org/ver10/events/wsdl");
 
     public final String namespace;
 

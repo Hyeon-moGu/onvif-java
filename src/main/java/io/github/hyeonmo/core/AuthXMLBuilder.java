@@ -15,6 +15,9 @@ public class AuthXMLBuilder {
 	private String userName;
 	private String password;
 	private long timeOffsetMs;
+	private String wsaAction;
+	private String wsaTo;
+	private String additionalHeaderXml;
 
 	public AuthXMLBuilder(String userName, String password) {
 	    this(userName, password, 0);
@@ -24,6 +27,18 @@ public class AuthXMLBuilder {
 		this.userName = userName;
 		this.password = password;
 		this.timeOffsetMs = timeOffsetMs;
+	}
+
+	public void setWsaAction(String action) {
+		this.wsaAction = action;
+	}
+
+	public void setWsaTo(String to) {
+		this.wsaTo = to;
+	}
+
+	public void setAdditionalHeaderXml(String additionalHeaderXml) {
+		this.additionalHeaderXml = additionalHeaderXml;
 	}
 
 	public String getAuthHeader() {
@@ -54,8 +69,24 @@ public class AuthXMLBuilder {
 		sb.append("xmlns:wsu=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd\" ");
 		sb.append("xmlns:tev=\"http://www.onvif.org/ver10/events/wsdl\" ");
 		sb.append("xmlns:trt=\"http://www.onvif.org/ver10/media/wsdl\" ");
-		sb.append("xmlns:timg=\"http://www.onvif.org/ver20/imaging/wsdl\">");
+		sb.append("xmlns:timg=\"http://www.onvif.org/ver20/imaging/wsdl\" ");
+		sb.append("xmlns:wsnt=\"http://docs.oasis-open.org/wsn/b-2\" ");
+		sb.append("xmlns:wsa=\"http://www.w3.org/2005/08/addressing\">");
 		sb.append("<s:Header>");
+
+		if (wsaAction != null && !wsaAction.isEmpty()) {
+			sb.append("<wsa:Action s:mustUnderstand=\"1\">").append(wsaAction).append("</wsa:Action>");
+		}
+		if (wsaTo != null && !wsaTo.isEmpty()) {
+			sb.append("<wsa:To s:mustUnderstand=\"1\">").append(wsaTo).append("</wsa:To>");
+		}
+		if ((wsaAction != null && !wsaAction.isEmpty()) || (wsaTo != null && !wsaTo.isEmpty())) {
+			sb.append("<wsa:ReplyTo><wsa:Address>http://www.w3.org/2005/08/addressing/anonymous</wsa:Address></wsa:ReplyTo>");
+			sb.append("<wsa:MessageID>uuid:").append(java.util.UUID.randomUUID().toString()).append("</wsa:MessageID>");
+		}
+		if (additionalHeaderXml != null && !additionalHeaderXml.isEmpty()) {
+			sb.append(additionalHeaderXml);
+		}
 		sb.append("<wsse:Security>");
 		sb.append("<wsse:UsernameToken>");
 		sb.append("<wsse:Username>");

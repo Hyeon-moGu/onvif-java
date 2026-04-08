@@ -3,12 +3,11 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.github.hyeon-mogu</groupId>
     <artifactId>onvif-java</artifactId>
-    <version>1.2.0</version>
+    <version>1.3.0</version>
 
     <name>onvif-java</name>
 	<description>
-		Onvif Java client library to discover, control and manage ONVIF-supported devices, 
-		especially IP cameras and video management systems. It offers an easy-to-use, asynchronous interface, abstracting complex ONVIF and SOAP protocol communication.
+		Asynchronous ONVIF Java client library for IP cameras and video devices, supporting device discovery, media streaming, PTZ control, imaging, and event subscriptions over SOAP.
 	</description>
     <url>https://github.com/hyeon-mogu/onvif-java</url>
 
@@ -108,7 +107,7 @@
                     <target>1.8</target>
                 </configuration>
             </plugin>
-            
+
             <!-- Central Publishing Plugin -->
             <plugin>
                 <groupId>org.sonatype.central</groupId>
