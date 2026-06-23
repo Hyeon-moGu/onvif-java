@@ -45,7 +45,9 @@ public class PullMessagesParser extends OnvifParser<PullMessagesResponse> {
             for (int i = 0; i < messageNodes.getLength(); i++) {
                 Node msgNode = messageNodes.item(i);
                 String topic = (String) xPath.evaluate(".//*[local-name()='Topic']", msgNode, XPathConstants.STRING);
-                Node messageNode = (Node) xPath.evaluate(".//*[local-name()='Message']", msgNode, XPathConstants.NODE);
+                // The ONVIF structure nests the attribute-bearing tt:Message inside the wsnt:Message
+                // wrapper, so target the inner element that actually carries UtcTime/PropertyOperation.
+                Node messageNode = (Node) xPath.evaluate(".//*[local-name()='Message'][@UtcTime or @PropertyOperation]", msgNode, XPathConstants.NODE);
                 String utcTime = getAttribute(messageNode, "UtcTime");
                 String propertyOperation = getAttribute(messageNode, "PropertyOperation");
                 Node sourceNode = (Node) xPath.evaluate(".//*[local-name()='Source']", msgNode, XPathConstants.NODE);

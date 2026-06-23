@@ -18,6 +18,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
+import io.github.hyeonmo.parsers.XMLParserUtils;
+
 public class OnvifUtils {
 
     /**
@@ -57,6 +59,7 @@ public class OnvifUtils {
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             factory.setNamespaceAware(true);
+            XMLParserUtils.hardenAgainstXxe(factory);
             DocumentBuilder builder = factory.newDocumentBuilder();
 
             Document doc = builder.newDocument();
@@ -79,6 +82,7 @@ public class OnvifUtils {
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             factory.setNamespaceAware(true);
+            XMLParserUtils.hardenAgainstXxe(factory);
             DocumentBuilder builder = factory.newDocumentBuilder();
             Document doc = builder.parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
 
@@ -99,6 +103,7 @@ public class OnvifUtils {
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             factory.setNamespaceAware(true);
+            XMLParserUtils.hardenAgainstXxe(factory);
             DocumentBuilder builder = factory.newDocumentBuilder();
             Document doc = builder.parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
 
