@@ -29,14 +29,14 @@
 <dependency>
     <groupId>io.github.hyeon-mogu</groupId>
     <artifactId>onvif-java</artifactId>
-    <version>1.3.0</version>
+    <version>1.3.1</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```gradle
-implementation group: 'io.github.hyeon-mogu', name: 'onvif-java', version: '1.3.0'
+implementation group: 'io.github.hyeon-mogu', name: 'onvif-java', version: '1.3.1'
 ```
 
 ---
