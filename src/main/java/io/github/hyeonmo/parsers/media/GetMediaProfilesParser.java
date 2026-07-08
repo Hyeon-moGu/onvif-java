@@ -16,6 +16,8 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.github.hyeonmo.models.OnvifMediaProfile;
 import io.github.hyeonmo.parsers.OnvifParser;
@@ -23,6 +25,7 @@ import io.github.hyeonmo.parsers.XMLParserUtils;
 import io.github.hyeonmo.responses.OnvifResponse;
 
 public class GetMediaProfilesParser extends OnvifParser<List<OnvifMediaProfile>> {
+    private static final Logger log = LoggerFactory.getLogger(GetMediaProfilesParser.class);
 
     private static final String KEY_PROFILES = "Profiles";
     private static final String ATTR_TOKEN = "token";
@@ -48,6 +51,7 @@ public class GetMediaProfilesParser extends OnvifParser<List<OnvifMediaProfile>>
                 String token = "";
                 String name = "";
                 String videoSourceToken = "";
+                String ptzConfigurationToken = "";
 
                 if (attrs != null) {
                     Node tokenNode = attrs.getNamedItem(ATTR_TOKEN);
@@ -64,6 +68,14 @@ public class GetMediaProfilesParser extends OnvifParser<List<OnvifMediaProfile>>
                 Node videoSourceTokenNode = (Node) xPath.evaluate("./*[local-name()='VideoSourceConfiguration']/*[local-name()='" + SOURCE_TOKEN + "']", profileNode, XPathConstants.NODE);
                 if (videoSourceTokenNode != null) {
                 	videoSourceToken = videoSourceTokenNode.getTextContent().trim();
+                }
+
+                Node ptzConfigurationNode = (Node) xPath.evaluate("./*[local-name()='PTZConfiguration']", profileNode, XPathConstants.NODE);
+                if (ptzConfigurationNode != null && ptzConfigurationNode.getAttributes() != null) {
+                    Node ptzTokenNode = ptzConfigurationNode.getAttributes().getNamedItem(ATTR_TOKEN);
+                    if (ptzTokenNode != null) {
+                        ptzConfigurationToken = ptzTokenNode.getNodeValue();
+                    }
                 }
 
                 NodeList children = profileNode.getChildNodes();
@@ -85,11 +97,11 @@ public class GetMediaProfilesParser extends OnvifParser<List<OnvifMediaProfile>>
                     }
                 }
 
-                profiles.add(new OnvifMediaProfile(name, token, videoSourceToken));
+                profiles.add(new OnvifMediaProfile(name, token, videoSourceToken, ptzConfigurationToken));
             }
 
         } catch (SAXException | IOException | XPathExpressionException e) {
-            e.printStackTrace();
+            log.debug("Unable to parse media profiles response", e);
         }
 
         return profiles;

@@ -9,6 +9,8 @@ import io.github.hyeonmo.models.OnvifMediaProfile;
 import io.github.hyeonmo.models.ptz.PresetCommand;
 import io.github.hyeonmo.models.ptz.PresetCommand.PresetAction;
 import io.github.hyeonmo.models.ptz.PtzType;
+import io.github.hyeonmo.models.ptz.PtzConfigurationOptions;
+import io.github.hyeonmo.models.ptz.PtzPosition;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -29,6 +31,9 @@ public class OnvifTester {
     private static final String DEFAULT_CAMERA_USERNAME = "admin";
     private static final String DEFAULT_CAMERA_PASSWORD = "admin";
     private static final int DISCOVERY_TIMEOUT_MS = 10000;
+    private static final double ABSOLUTE_TARGET_PAN = 1.0;
+    private static final double ABSOLUTE_TARGET_TILT = 0.5;
+    private static final double ABSOLUTE_TARGET_ZOOM = 0.2;
 
     private static final String CAMERA_IP = getConfig("onvif.camera.ip", "ONVIF_CAMERA_IP");
     private static final String CAMERA_USERNAME = getConfig("onvif.camera.username", "ONVIF_CAMERA_USERNAME");
@@ -88,7 +93,7 @@ public class OnvifTester {
                     assertNotNull(status);
                 })
                 .exceptionally(ex -> {
-                    log.warn("Evidence - PTZ Status skipped (unsupported or error: {})", ex.getMessage());
+                    log.warn("Evidence - PTZ Status skipped due to {}", ex.getClass().getSimpleName());
                     return null;
                 }).join();
     }
@@ -151,6 +156,36 @@ public class OnvifTester {
     }
 
     @Test
+    public void testPtzAbsoluteMove() {
+        log.info("Testing PTZ Absolute Position and Move...");
+
+        PtzPosition target = new PtzPosition(
+                ABSOLUTE_TARGET_PAN,
+                ABSOLUTE_TARGET_TILT,
+                ABSOLUTE_TARGET_ZOOM);
+
+        sharedDevice.ptz().getPosition()
+                .thenCombine(sharedDevice.ptz().getConfigurationOptions(), (current, options) -> {
+                    log.info("Evidence - Current PTZ Position: {}", current);
+                    logPtzRanges(options);
+                    options.validate(target, null);
+                    return target;
+                })
+                .thenCompose(sharedDevice.ptz()::absoluteMove)
+                .thenCompose(result -> {
+                    log.info("Evidence - Absolute Move Result: {}", result);
+                    assertEquals("AbsoluteMove success", result);
+                    return waitAsync(2000);
+                })
+                .thenCompose(ignored -> sharedDevice.ptz().getPosition())
+                .thenAccept(position -> {
+                    log.info("Evidence - PTZ Position After Absolute Move: {}", position);
+                    assertNotNull(position);
+                })
+                .join();
+    }
+
+    @Test
     public void testAuthFailure() {
         log.info("Testing Authentication Failure...");
         CompletableFuture<OnvifDevice> badAuthFuture = OnvifClient.connect(sharedDevice.getHostName())
@@ -197,6 +232,27 @@ public class OnvifTester {
         return OnvifClient.connect(firstDevice)
                 .credentials(username, password)
                 .buildAsync();
+    }
+
+    private static void logPtzRanges(PtzConfigurationOptions options) {
+        if (options.getAbsolutePanTiltSpace() != null) {
+            log.info("Evidence - Absolute Pan Range: {}", options.getAbsolutePanTiltSpace().getXRange());
+            log.info("Evidence - Absolute Tilt Range: {}", options.getAbsolutePanTiltSpace().getYRange());
+        }
+        if (options.getAbsoluteZoomSpace() != null) {
+            log.info("Evidence - Absolute Zoom Range: {}", options.getAbsoluteZoomSpace().getXRange());
+        }
+    }
+
+    private static CompletableFuture<Void> waitAsync(long milliseconds) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                Thread.sleep(milliseconds);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Interrupted while waiting for PTZ movement", e);
+            }
+        });
     }
 
     private static String getConfig(String propertyKey, String envKey) {

@@ -18,6 +18,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.github.hyeonmo.core.DiscoveryMode;
 import io.github.hyeonmo.models.Device;
@@ -28,6 +30,7 @@ import io.github.hyeonmo.models.UPnPDevice;
 import io.github.hyeonmo.responses.OnvifResponse;
 
 public class DiscoveryParser extends OnvifParser<List<Device>> {
+	private static final Logger log = LoggerFactory.getLogger(DiscoveryParser.class);
 
 	private static final String LINE_END = "\r\n";
 	private static final String KEY_UPNP_LOCATION = "LOCATION: ";
@@ -111,7 +114,7 @@ public class DiscoveryParser extends OnvifParser<List<Device>> {
 
 
 		} catch (SAXException | IOException | XPathExpressionException e) {
-			e.printStackTrace();
+			log.debug("Unable to parse discovery response", e);
 		}
 
 		return devices;

@@ -14,6 +14,8 @@ import javax.xml.xpath.XPathExpressionException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.github.hyeonmo.models.OnvifDeviceInformation;
 import io.github.hyeonmo.parsers.OnvifParser;
@@ -21,6 +23,7 @@ import io.github.hyeonmo.parsers.XMLParserUtils;
 import io.github.hyeonmo.responses.OnvifResponse;
 
 public class GetDeviceInformationParser extends OnvifParser<OnvifDeviceInformation> {
+	private static final Logger log = LoggerFactory.getLogger(GetDeviceInformationParser.class);
 
 	private static final String KEY_MANUFACTURER = "Manufacturer";
 	private static final String KEY_MODEL = "Model";
@@ -48,7 +51,7 @@ public class GetDeviceInformationParser extends OnvifParser<OnvifDeviceInformati
 			deviceInformation.setHardwareId(getTagValue(doc, xPath, KEY_HARDWARE_ID));
 
 		} catch (SAXException | IOException | XPathExpressionException e) {
-			e.printStackTrace();
+			log.debug("Unable to parse device information response", e);
 		}
 
 		return deviceInformation;

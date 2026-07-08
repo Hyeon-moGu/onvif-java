@@ -7,8 +7,6 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
 import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
@@ -17,10 +15,13 @@ import javax.xml.xpath.XPathFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.github.hyeonmo.parsers.XMLParserUtils;
 
 public class OnvifUtils {
+    private static final Logger log = LoggerFactory.getLogger(OnvifUtils.class);
 
     /**
      * Util method to retrieve a path from an URL (without IP address and port)
@@ -34,6 +35,7 @@ public class OnvifUtils {
         try {
             url = new URL(uri);
         } catch (MalformedURLException e) {
+            log.debug("Invalid ONVIF URL", e);
             return "";
         }
 
@@ -57,10 +59,7 @@ public class OnvifUtils {
         if (parentNode == null) return "";
 
         try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setNamespaceAware(true);
-            XMLParserUtils.hardenAgainstXxe(factory);
-            DocumentBuilder builder = factory.newDocumentBuilder();
+            DocumentBuilder builder = XMLParserUtils.getDocumentBuilder();
 
             Document doc = builder.newDocument();
             Node importedNode = doc.importNode(parentNode, true);
@@ -71,8 +70,8 @@ public class OnvifUtils {
             if (node != null) {
                 return node.getTextContent().trim();
             }
-        } catch (ParserConfigurationException | XPathExpressionException e) {
-            e.printStackTrace();
+        } catch (XPathExpressionException e) {
+            log.debug("Unable to read {} from XML node", tagName, e);
         }
 
         return "";
@@ -80,10 +79,7 @@ public class OnvifUtils {
 
     public static String retrieveXAddrsFromXml(String xml) {
         try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setNamespaceAware(true);
-            XMLParserUtils.hardenAgainstXxe(factory);
-            DocumentBuilder builder = factory.newDocumentBuilder();
+            DocumentBuilder builder = XMLParserUtils.getDocumentBuilder();
             Document doc = builder.parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
 
             XPath xPath = XPathFactory.newInstance().newXPath();
@@ -92,8 +88,8 @@ public class OnvifUtils {
                 return node.getTextContent().trim();
             }
 
-        } catch (ParserConfigurationException | SAXException | IOException | XPathExpressionException e) {
-            e.printStackTrace();
+        } catch (SAXException | IOException | XPathExpressionException e) {
+            log.debug("Unable to read XAddrs from XML", e);
         }
 
         return "";
@@ -101,10 +97,7 @@ public class OnvifUtils {
 
     public static String retrieveXAddrFromXml(String xml) {
         try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setNamespaceAware(true);
-            XMLParserUtils.hardenAgainstXxe(factory);
-            DocumentBuilder builder = factory.newDocumentBuilder();
+            DocumentBuilder builder = XMLParserUtils.getDocumentBuilder();
             Document doc = builder.parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
 
             XPath xPath = XPathFactory.newInstance().newXPath();
@@ -113,8 +106,8 @@ public class OnvifUtils {
                 return node.getTextContent().trim();
             }
 
-        } catch (ParserConfigurationException | SAXException | IOException | XPathExpressionException e) {
-            e.printStackTrace();
+        } catch (SAXException | IOException | XPathExpressionException e) {
+            log.debug("Unable to read XAddr from XML", e);
         }
 
         return "";

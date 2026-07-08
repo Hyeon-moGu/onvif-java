@@ -12,6 +12,11 @@ public class OnvifSoapException extends OnvifException {
         this.xmlPayload = xmlPayload;
     }
 
+    public OnvifSoapException(String message, String xmlPayload, Throwable cause) {
+        super(message, cause);
+        this.xmlPayload = xmlPayload;
+    }
+
     public String getXmlPayload() {
         return xmlPayload;
     }

@@ -15,12 +15,15 @@ import javax.xml.xpath.XPathExpressionException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.github.hyeonmo.parsers.OnvifParser;
 import io.github.hyeonmo.parsers.XMLParserUtils;
 import io.github.hyeonmo.responses.OnvifResponse;
 
 public class GetSystemDateAndTimeParser extends OnvifParser<Date> {
+    private static final Logger log = LoggerFactory.getLogger(GetSystemDateAndTimeParser.class);
 
     @Override
     public Date parse(OnvifResponse response) {
@@ -57,7 +60,7 @@ public class GetSystemDateAndTimeParser extends OnvifParser<Date> {
             }
 
         } catch (SAXException | IOException | XPathExpressionException e) {
-            e.printStackTrace();
+            log.debug("Unable to parse system date/time response", e);
         }
 
         return deviceDate;

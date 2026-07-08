@@ -12,12 +12,15 @@ import javax.xml.xpath.XPathExpressionException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.github.hyeonmo.models.imaging.ImagingSettings;
 import io.github.hyeonmo.parsers.XMLParserUtils;
 import io.github.hyeonmo.responses.ImagingResponse;
 
 public class GetImagingSettingsParser extends ImagingParser<ImagingSettings> {
+    private static final Logger log = LoggerFactory.getLogger(GetImagingSettingsParser.class);
 
     @Override
     public ImagingSettings parse(ImagingResponse<?> response) {
@@ -62,7 +65,7 @@ public class GetImagingSettingsParser extends ImagingParser<ImagingSettings> {
             imagingSettings.setWhiteBalanceMode(getTagValue(doc, xPath, "WhiteBalance", "Mode"));
 
         } catch (SAXException | IOException | XPathExpressionException e) {
-            e.printStackTrace();
+            log.debug("Unable to parse imaging settings response", e);
         }
 
         return imagingSettings;

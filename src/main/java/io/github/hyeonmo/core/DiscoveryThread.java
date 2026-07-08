@@ -3,11 +3,14 @@ package io.github.hyeonmo.core;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketTimeoutException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.github.hyeonmo.parsers.DiscoveryParser;
 import io.github.hyeonmo.responses.OnvifResponse;
 
 public class DiscoveryThread extends Thread {
+    private static final Logger log = LoggerFactory.getLogger(DiscoveryThread.class);
 
     //Constants
     public static final String TAG = DiscoveryThread.class.getSimpleName();
@@ -29,7 +32,6 @@ public class DiscoveryThread extends Thread {
 
     @Override
     public void run() {
-        System.out.flush();
         try {
             boolean started = false;
             DatagramPacket packet = new DatagramPacket(new byte[4096], 4096);
@@ -47,9 +49,9 @@ public class DiscoveryThread extends Thread {
             }
 
         }catch (SocketTimeoutException ignore) {
-            // Ignore Finish receive
+            log.debug("Discovery receive timed out after {} ms", timeout);
         }catch (Exception e) {
-        	e.printStackTrace();
+            log.warn("Discovery receive failed", e);
         } finally {
             server.close();
             callback.onDiscoveryFinished();

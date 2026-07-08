@@ -70,7 +70,7 @@ public class EventManager {
                 .exceptionally(ex -> {
                     if (isSubscribed) {
                         isSubscribed = false;
-                        log.warn("Event polling stopped: {}", ex.getMessage());
+                        log.warn("Event polling stopped after a request failure");
                     }
                     scheduler.shutdownNow();
                     return null;
@@ -98,7 +98,7 @@ public class EventManager {
             return operations.unsubscribe(currentSubscription)
                     .handle((res, ex) -> {
                         if (ex != null) {
-                            log.debug("SOAP unsubscribe failed: {}", ex.getMessage());
+                            log.debug("SOAP unsubscribe failed");
                         }
                         scheduler.shutdownNow();
                         return null;

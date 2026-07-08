@@ -2,17 +2,11 @@ package io.github.hyeonmo.models.ptz;
 
 public enum PtzType {
 
-    UP(0.0, 0.7, 0.0),
-    DOWN(0.0, -0.7, 0.0),
-    LEFT(-0.7, 0.0, 0.0),
-    RIGHT(0.7, 0.0, 0.0),
-    UP_LEFT(-0.7, 0.7, 0.0),
-    UP_RIGHT(0.7, 0.7, 0.0),
-    DOWN_LEFT(-0.7, -0.7, 0.0),
-    DOWN_RIGHT(0.7, -0.7, 0.0),
+    UP(0.0, 0.7, 0.0), DOWN(0.0, -0.7, 0.0), LEFT(-0.7, 0.0, 0.0), RIGHT(0.7, 0.0, 0.0), UP_LEFT(
+            -0.7, 0.7,
+            0.0), UP_RIGHT(0.7, 0.7, 0.0), DOWN_LEFT(-0.7, -0.7, 0.0), DOWN_RIGHT(0.7, -0.7, 0.0),
 
-    ZOOM_IN(0.0, 0.0, 0.7),
-    ZOOM_OUT(0.0, 0.0, -0.7);
+    ZOOM_IN(0.0, 0.0, 0.7), ZOOM_OUT(0.0, 0.0, -0.7);
 
     private final double pan;
     private final double tilt;
@@ -38,10 +32,6 @@ public enum PtzType {
 
     @Override
     public String toString() {
-    	return "PtzType{" +
-    			"pan=" + pan +
-    			", tilt=" + tilt +
-    			", zoom=" + zoom +
-    			"}";
+        return "PtzType{" + "pan=" + pan + ", tilt=" + tilt + ", zoom=" + zoom + "}";
     }
 }

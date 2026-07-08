@@ -12,11 +12,14 @@ import javax.xml.xpath.XPathExpressionException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.github.hyeonmo.responses.OnvifResponse;
 import io.github.hyeonmo.upnp.UPnPDeviceInformation;
 
 public class UPnPParser extends OnvifParser<UPnPDeviceInformation> {
+    private static final Logger log = LoggerFactory.getLogger(UPnPParser.class);
 
     @Override
     public UPnPDeviceInformation parse(OnvifResponse response) {
@@ -81,7 +84,7 @@ public class UPnPParser extends OnvifParser<UPnPDeviceInformation> {
             }
 
         } catch (SAXException | IOException | XPathExpressionException e) {
-            e.printStackTrace();
+            log.debug("Unable to parse UPnP response", e);
         }
 
         return deviceInformation;

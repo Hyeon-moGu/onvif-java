@@ -2,8 +2,11 @@ package io.github.hyeonmo.models;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class OnvifPacket {
+    private static final Logger log = LoggerFactory.getLogger(OnvifPacket.class);
 
     //Constants
     public static final String TAG = OnvifPacket.class.getSimpleName();
@@ -75,7 +78,7 @@ public class OnvifPacket {
                             bytes.add((byte) (val2 + val3));
 
                         } catch (NumberFormatException e) {
-                            e.printStackTrace();
+                            log.debug("Ignoring malformed percent-encoded packet byte", e);
                         }
 
                         i += 2;

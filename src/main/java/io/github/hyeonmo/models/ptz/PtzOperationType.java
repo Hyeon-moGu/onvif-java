@@ -4,5 +4,8 @@ public enum PtzOperationType {
      MOVE,
      STOP,
      PRESET,
-     STATUS
+     STATUS,
+     POSITION,
+     ABSOLUTE_MOVE,
+     CONFIGURATION_OPTIONS
 }

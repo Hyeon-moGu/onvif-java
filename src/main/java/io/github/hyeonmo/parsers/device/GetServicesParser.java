@@ -13,6 +13,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.github.hyeonmo.utils.OnvifUtils;
 import io.github.hyeonmo.models.OnvifServices;
@@ -22,6 +24,7 @@ import io.github.hyeonmo.parsers.XMLParserUtils;
 import io.github.hyeonmo.responses.OnvifResponse;
 
 public class GetServicesParser extends OnvifParser<OnvifServices> {
+    private static final Logger log = LoggerFactory.getLogger(GetServicesParser.class);
 
     @Override
     public OnvifServices parse(OnvifResponse<?> response) {
@@ -61,7 +64,7 @@ public class GetServicesParser extends OnvifParser<OnvifServices> {
             }
 
         } catch (SAXException | IOException | XPathExpressionException e) {
-            e.printStackTrace();
+            log.debug("Unable to parse services response", e);
         }
 
         return services;

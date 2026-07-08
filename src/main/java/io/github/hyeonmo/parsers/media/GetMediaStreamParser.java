@@ -12,12 +12,15 @@ import javax.xml.xpath.XPathExpressionException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.github.hyeonmo.parsers.OnvifParser;
 import io.github.hyeonmo.parsers.XMLParserUtils;
 import io.github.hyeonmo.responses.OnvifResponse;
 
 public class GetMediaStreamParser extends OnvifParser<String> {
+    private static final Logger log = LoggerFactory.getLogger(GetMediaStreamParser.class);
 
     private static final String KEY_URI = "Uri";
 
@@ -37,7 +40,7 @@ public class GetMediaStreamParser extends OnvifParser<String> {
             }
 
         } catch (SAXException | IOException | XPathExpressionException e) {
-            e.printStackTrace();
+            log.debug("Unable to parse media stream URI response", e);
         }
 
         return uri;

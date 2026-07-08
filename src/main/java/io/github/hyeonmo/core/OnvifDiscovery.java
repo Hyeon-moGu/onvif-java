@@ -20,6 +20,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.github.hyeonmo.models.Device;
 import io.github.hyeonmo.models.DiscoveryPacket;
@@ -29,6 +31,7 @@ import io.github.hyeonmo.models.OnvifPacket;
  * The OnvifDiscovery class uses the Web Services Dynamic Discovery (WS-Discovery).
  */
 public class OnvifDiscovery {
+    private static final Logger log = LoggerFactory.getLogger(OnvifDiscovery.class);
 
     public static final String TAG = OnvifDiscovery.class.getSimpleName();
     private static final String MULTICAST_ADDRESS_IPV4 = "239.255.255.250"; 
@@ -97,6 +100,7 @@ public class OnvifDiscovery {
                                     client.send(new DatagramPacket(data, data.length, InetAddress.getByName(MULTICAST_ADDRESS_IPV6), mode.port));
                                 }
                             } catch (IOException e) {
+                                log.debug("Failed to send discovery probe on {}", address, e);
                             }
                         }
 
@@ -116,7 +120,7 @@ public class OnvifDiscovery {
                     thread.start();
 
                 } catch (Exception e) {
-                	e.printStackTrace();
+                    log.warn("Failed to start discovery on {}", address, e);
                 }
 
             });
@@ -167,7 +171,7 @@ public class OnvifDiscovery {
                 }
             }
         } catch (SocketException e) {
-            e.printStackTrace();
+            log.warn("Unable to enumerate network interface addresses", e);
         }
 
         return addresses;
@@ -195,7 +199,7 @@ public class OnvifDiscovery {
                 }
             }
         } catch (SocketException e) {
-            e.printStackTrace();
+            log.warn("Unable to enumerate broadcast addresses", e);
         }
 
         return addresses;
@@ -213,8 +217,8 @@ public class OnvifDiscovery {
                     }
                 }
             }
-        } catch (SocketException ignored) {
-
+        } catch (SocketException e) {
+            log.debug("Unable to determine local IPv4 address", e);
         }
         return null;
     }

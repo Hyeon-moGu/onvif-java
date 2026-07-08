@@ -9,6 +9,8 @@ import java.util.Random;
 
 import io.github.hyeonmo.models.ptz.PresetCommand;
 import io.github.hyeonmo.models.ptz.PtzType;
+import io.github.hyeonmo.models.ptz.PtzPosition;
+import io.github.hyeonmo.models.ptz.PtzSpeed;
 
 public class AuthXMLBuilder {
 
@@ -186,6 +188,48 @@ public class AuthXMLBuilder {
 		sb.append("</tptz:ProfileToken>");
 		sb.append("</tptz:GetStatus>");
 
+		return sb.toString();
+	}
+
+	public String getPtzConfigurationOptionsBody(String configurationToken) {
+		return "<tptz:GetConfigurationOptions>"
+				+ "<tptz:ConfigurationToken>" + configurationToken + "</tptz:ConfigurationToken>"
+				+ "</tptz:GetConfigurationOptions>";
+	}
+
+	public String getPtzAbsoluteMoveBody(String profileToken, PtzPosition position, PtzSpeed speed,
+			String panTiltSpace, String zoomSpace, String panTiltSpeedSpace, String zoomSpeedSpace) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("<tptz:AbsoluteMove><tptz:ProfileToken>").append(profileToken)
+				.append("</tptz:ProfileToken><tptz:Position>");
+		if (position.hasPanTilt()) {
+			sb.append("<tt:PanTilt x=\"").append(position.getPan()).append("\" y=\"")
+					.append(position.getTilt()).append("\"");
+			if (panTiltSpace != null && !panTiltSpace.isEmpty()) sb.append(" space=\"").append(panTiltSpace).append("\"");
+			sb.append("/>");
+		}
+		if (position.hasZoom()) {
+			sb.append("<tt:Zoom x=\"").append(position.getZoom()).append("\"");
+			if (zoomSpace != null && !zoomSpace.isEmpty()) sb.append(" space=\"").append(zoomSpace).append("\"");
+			sb.append("/>");
+		}
+		sb.append("</tptz:Position>");
+		if (speed != null) {
+			sb.append("<tptz:Speed>");
+			if (speed.hasPanTilt()) {
+				sb.append("<tt:PanTilt x=\"").append(speed.getPan()).append("\" y=\"")
+						.append(speed.getTilt()).append("\"");
+				if (panTiltSpeedSpace != null && !panTiltSpeedSpace.isEmpty()) sb.append(" space=\"").append(panTiltSpeedSpace).append("\"");
+				sb.append("/>");
+			}
+			if (speed.hasZoom()) {
+				sb.append("<tt:Zoom x=\"").append(speed.getZoom()).append("\"");
+				if (zoomSpeedSpace != null && !zoomSpeedSpace.isEmpty()) sb.append(" space=\"").append(zoomSpeedSpace).append("\"");
+				sb.append("/>");
+			}
+			sb.append("</tptz:Speed>");
+		}
+		sb.append("</tptz:AbsoluteMove>");
 		return sb.toString();
 	}
 

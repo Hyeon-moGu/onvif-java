@@ -4,7 +4,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import io.github.hyeonmo.responses.PtzResponse;
 
-public abstract class PtzBaseParser {
+public abstract class PtzBaseParser implements PtzResponseParser<PtzResponse> {
     public abstract PtzResponse parse(String xml);
 
     protected String extractAttribute(String xml, String tagName, String attributeName) {

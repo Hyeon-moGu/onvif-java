@@ -13,8 +13,11 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okio.Buffer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class UPnPExecutor {
+    private static final Logger log = LoggerFactory.getLogger(UPnPExecutor.class);
 
     //Constants
     public static final String TAG = UPnPExecutor.class.getSimpleName();
@@ -148,7 +151,7 @@ public class UPnPExecutor {
                 copy.body().writeTo(buffer);
             return buffer.readUtf8();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.debug("Unable to read UPnP request body", e);
             return "";
         }
     }

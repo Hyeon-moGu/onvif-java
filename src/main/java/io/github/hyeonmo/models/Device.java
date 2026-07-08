@@ -73,7 +73,6 @@ public abstract class Device implements Comparable<Device> {
 
     @Override
     public String toString() {
-    	String str = "host=" + host + ", username=" + username + ", password=" + password ;
-    	return str;
+		return "host=" + host + ", username=" + username;
     }
 }

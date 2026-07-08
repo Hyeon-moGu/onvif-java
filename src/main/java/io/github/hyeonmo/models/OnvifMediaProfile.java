@@ -9,13 +9,19 @@ public class OnvifMediaProfile {
     private final String name;
     private final String token;
     private final String videoSourceToken;
+    private final String ptzConfigurationToken;
 
     //Constructors
 
     public OnvifMediaProfile(String name, String token, String videoSourceToken) {
+        this(name, token, videoSourceToken, "");
+    }
+
+    public OnvifMediaProfile(String name, String token, String videoSourceToken, String ptzConfigurationToken) {
         this.name = name;
         this.token = token;
         this.videoSourceToken = videoSourceToken;
+        this.ptzConfigurationToken = ptzConfigurationToken;
     }
 
     //Properties
@@ -32,12 +38,17 @@ public class OnvifMediaProfile {
     	return videoSourceToken;
     }
 
+    public String getPtzConfigurationToken() {
+        return ptzConfigurationToken;
+    }
+
     @Override
     public String toString() {
         return "OnvifMediaProfile{" +
                 "name='" + name + '\'' +
                 ", token='" + token + '\'' +
                 ", sourceToken='" + videoSourceToken + '\'' +
+                ", ptzConfigurationToken='" + ptzConfigurationToken + '\'' +
                 '}';
     }
 }
