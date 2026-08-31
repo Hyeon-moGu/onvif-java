@@ -3,6 +3,8 @@ package io.github.hyeonmo.operations.impl;
 import io.github.hyeonmo.managers.OnvifManager;
 import io.github.hyeonmo.models.OnvifDevice;
 import io.github.hyeonmo.models.OnvifMediaProfile;
+import io.github.hyeonmo.models.media.StreamType;
+import io.github.hyeonmo.models.media.TransportProtocol;
 import io.github.hyeonmo.operations.MediaOperations;
 
 import java.util.List;
@@ -26,6 +28,13 @@ public class MediaOperationsImpl implements MediaOperations {
     @Override
     public CompletableFuture<String> getMediaStreamURI(OnvifMediaProfile profile) {
         return manager.getMediaStreamURI(device, profile);
+    }
+
+    @Override
+    public CompletableFuture<String> getMediaStreamURI(OnvifMediaProfile profile,
+                                                       StreamType streamType,
+                                                       TransportProtocol transportProtocol) {
+        return manager.getMediaStreamURI(device, profile, streamType, transportProtocol);
     }
 
     @Override

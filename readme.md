@@ -29,14 +29,14 @@
 <dependency>
     <groupId>io.github.hyeon-mogu</groupId>
     <artifactId>onvif-java</artifactId>
-    <version>1.3.2</version>
+    <version>1.4.0</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```gradle
-implementation group: 'io.github.hyeon-mogu', name: 'onvif-java', version: '1.3.2'
+implementation group: 'io.github.hyeon-mogu', name: 'onvif-java', version: '1.4.0'
 ```
 
 ---
@@ -73,18 +73,24 @@ OnvifClient.discover(30000)
     });
 ```
 
-### 3. Media Profiles and Snapshots
+### 3. Media Profiles, Streams and Snapshots
 
-Fetch the first media profile and retrieve its snapshot URI.
+Fetch the first media profile and retrieve its RTSP stream URI or JPEG snapshot URI.
 
 ```java
 device.media().getMediaProfiles()
     .thenCompose(profiles -> {
         OnvifMediaProfile profile = profiles.get(0);
-        return device.media().getSnapshotURI(profile);
+        return device.media().getMediaStreamURI(profile);
     })
+    .thenAccept(uri -> log.info("RTSP stream URL: {}", uri));
+
+device.media().getMediaProfiles()
+    .thenCompose(profiles -> device.media().getSnapshotURI(profiles.get(0)))
     .thenAccept(uri -> log.info("Snapshot URL: {}", uri));
 ```
+
+The stream defaults to RTP unicast over RTSP. To pick the transport, use the overload `getMediaStreamURI(profile, StreamType, TransportProtocol)` — for example `TransportProtocol.TCP` for NAT/firewall traversal.
 
 ### 4. PTZ Control
 

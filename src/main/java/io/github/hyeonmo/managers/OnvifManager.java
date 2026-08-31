@@ -9,6 +9,8 @@ import io.github.hyeonmo.models.OnvifDevice;
 import io.github.hyeonmo.models.OnvifDeviceInformation;
 import io.github.hyeonmo.models.OnvifMediaProfile;
 import io.github.hyeonmo.models.OnvifServices;
+import io.github.hyeonmo.models.media.StreamType;
+import io.github.hyeonmo.models.media.TransportProtocol;
 import io.github.hyeonmo.requests.OnvifRequest;
 import io.github.hyeonmo.requests.device.GetCapabilitiesRequest;
 import io.github.hyeonmo.requests.device.GetDeviceInformationRequest;
@@ -64,6 +66,12 @@ public class OnvifManager {
 
     public CompletableFuture<String> getMediaStreamURI(OnvifDevice device, OnvifMediaProfile profile) {
         OnvifRequest request = new GetMediaStreamRequest(profile);
+        return executor.sendRequest(device, request);
+    }
+
+    public CompletableFuture<String> getMediaStreamURI(OnvifDevice device, OnvifMediaProfile profile,
+                                                       StreamType streamType, TransportProtocol transportProtocol) {
+        OnvifRequest request = new GetMediaStreamRequest(profile, streamType, transportProtocol);
         return executor.sendRequest(device, request);
     }
 
