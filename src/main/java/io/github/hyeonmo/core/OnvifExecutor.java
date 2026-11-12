@@ -13,7 +13,9 @@ import com.burgstaller.okhttp.digest.Credentials;
 import com.burgstaller.okhttp.digest.DigestAuthenticator;
 
 import io.github.hyeonmo.exceptions.OnvifExceptionFactory;
+import io.github.hyeonmo.exceptions.OnvifNetworkException;
 import io.github.hyeonmo.models.OnvifDevice;
+import io.github.hyeonmo.models.OnvifType;
 import io.github.hyeonmo.parsers.device.GetCapabilitiesParser;
 import io.github.hyeonmo.parsers.device.GetDeviceInformationParser;
 import io.github.hyeonmo.parsers.device.GetServicesParser;
@@ -90,7 +92,8 @@ public class OnvifExecutor {
         CompletableFuture<T> future = new CompletableFuture<>();
         
         String url;
-        if (isFullUrl) {
+        if (isFullUrl || pathOrUrl.regionMatches(true, 0, "http://", 0, 7)
+                || pathOrUrl.regionMatches(true, 0, "https://", 0, 8)) {
             url = pathOrUrl;
         } else {
             url = (baseUrl == null || baseUrl.isEmpty()) ? hostName + pathOrUrl : baseUrl + pathOrUrl;
@@ -106,7 +109,8 @@ public class OnvifExecutor {
             builder.setAdditionalHeaderXml(additionalHeaderXml);
         }
 
-        String xmlPayload = builder.getAuthHeader() + request.getXml() + builder.getAuthEnd();
+        String xmlPayload = builder.getAuthHeader(request.getType() != OnvifType.GET_SYSTEM_DATE_AND_TIME)
+                + request.getXml() + builder.getAuthEnd();
         RequestBody reqBody = RequestBody.create(reqBodyType, xmlPayload);
 
         Request xmlRequest = new Request.Builder()
@@ -116,24 +120,29 @@ public class OnvifExecutor {
 
         OkHttpClient client = getClientForDevice(hostName, username, password);
 
-        client.newCall(xmlRequest).enqueue(new Callback() {
+        Call pendingCall = client.newCall(xmlRequest);
+        future.whenComplete((result, error) -> {
+            if (future.isCancelled()) pendingCall.cancel();
+        });
+        pendingCall.enqueue(new Callback() {
             @Override
             public void onResponse(Call call, Response xmlResponse) throws IOException {
                 OnvifResponse<?> response = new OnvifResponse<>(request);
                 ResponseBody xmlBody = xmlResponse.body();
-                String responseBody = xmlBody != null ? xmlBody.string() : "";
-
-                if (xmlResponse.isSuccessful()) {
-                    response.setSuccess(true);
-                    response.setXml(responseBody);
-                    try {
-                    	T result = parseResponseAsFutureResult(response);
+                try (ResponseBody body = xmlBody) {
+                    String responseBody = body != null ? body.string() : "";
+                    if (xmlResponse.isSuccessful()) {
+                        response.setSuccess(true);
+                        response.setXml(responseBody);
+                        T result = parseResponseAsFutureResult(response);
                         future.complete(result);
-                    } catch (Exception e) {
-                    	future.completeExceptionally(e);
+                    } else {
+                        future.completeExceptionally(OnvifExceptionFactory.fromHttpError(xmlResponse.code(), responseBody));
                     }
-                } else {
-                    future.completeExceptionally(OnvifExceptionFactory.fromHttpError(xmlResponse.code(), responseBody));
+                } catch (IOException e) {
+                    future.completeExceptionally(new OnvifNetworkException("Unable to read SOAP response", e));
+                } catch (Exception e) {
+                    future.completeExceptionally(e);
                 }
             }
 
@@ -180,28 +189,32 @@ public class OnvifExecutor {
         switch (request.getType()) {
             case GET_SERVICES:
             case GET_CAPABILITIES:
-            case GET_SNAPSHOT_URI:
-                return device.getPath().getServicesPath();
+                return endpoint(device.getPath().getDeviceXaddr(), device.getPath().getServicesPath());
             case GET_DEVICE_INFORMATION:
             case GET_SYSTEM_DATE_AND_TIME:
-                return device.getPath().getDeviceInformationPath();
+                return endpoint(device.getPath().getDeviceXaddr(), device.getPath().getDeviceInformationPath());
             case GET_MEDIA_PROFILES:
-                return device.getPath().getProfilesPath();
+                return endpoint(device.getPath().getMediaXaddr(), device.getPath().getProfilesPath());
+            case GET_SNAPSHOT_URI:
             case GET_STREAM_URI:
-                return device.getPath().getStreamURIPath();
+                return endpoint(device.getPath().getMediaXaddr(), device.getPath().getStreamURIPath());
             case GET_PTZ:
-                return device.getPath().getPtzPath();
+                return endpoint(device.getPath().getPtzXaddr(), device.getPath().getPtzPath());
             case GET_IMAGING:
-                return device.getPath().getImagingPath();
+                return endpoint(device.getPath().getImagingXaddr(), device.getPath().getImagingPath());
             case GET_EVENTS:
             case CREATE_PULLPOINT_SUBSCRIPTION:
             case PULL_MESSAGES:
             case RENEW:
             case UNSUBSCRIBE:
-                return device.getPath().getEventsPath();
+                return endpoint(device.getPath().getEventsXaddr(), device.getPath().getEventsPath());
             default:
                 return device.getPath().getServicesPath();
         }
+    }
+
+    private String endpoint(String address, String path) {
+        return address == null || address.isEmpty() ? path : address;
     }
 
     public void clear() {

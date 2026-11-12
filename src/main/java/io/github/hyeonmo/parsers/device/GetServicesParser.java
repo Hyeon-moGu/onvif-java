@@ -16,7 +16,6 @@ import org.xml.sax.SAXException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.github.hyeonmo.utils.OnvifUtils;
 import io.github.hyeonmo.models.OnvifServices;
 import io.github.hyeonmo.models.OnvifType;
 import io.github.hyeonmo.parsers.OnvifParser;
@@ -45,20 +44,25 @@ public class GetServicesParser extends OnvifParser<OnvifServices> {
                 Node xAddrNode = (Node) xPath.evaluate("following-sibling::*[local-name()='XAddr']", nsNode, XPathConstants.NODE);
                 if (xAddrNode != null) {
                     String uri = xAddrNode.getTextContent().trim();
+                    if (uri.isEmpty()) {
+                        continue;
+                    }
 
-                    if (currentNamespace.equals(OnvifType.GET_DEVICE_INFORMATION.namespace)) {
-                        services.setDeviceInformationPath(OnvifUtils.getPathFromURL(uri));
-                    } else if (currentNamespace.equals(OnvifType.GET_MEDIA_PROFILES.namespace)
-                            || currentNamespace.equals(OnvifType.GET_STREAM_URI.namespace)) {
-                        String path = OnvifUtils.getPathFromURL(uri);
-                        services.setProfilesPath(path);
-                        services.setStreamURIPath(path);
-                    } else if (currentNamespace.equals(OnvifType.GET_PTZ.namespace)) {
-                        services.setPtzPath(OnvifUtils.getPathFromURL(uri));
-                    } else if (currentNamespace.equals(OnvifType.GET_IMAGING.namespace)) {
-                        services.setImagingPath(OnvifUtils.getPathFromURL(uri));
-                    } else if (currentNamespace.equals(OnvifType.GET_EVENTS.namespace)) {
-                        services.setEventsPath(OnvifUtils.getPathFromURL(uri));
+                    try {
+                        if (currentNamespace.equals(OnvifType.GET_DEVICE_INFORMATION.namespace)) {
+                            services.setDeviceXaddr(uri);
+                        } else if (currentNamespace.equals(OnvifType.GET_MEDIA_PROFILES.namespace)
+                                || currentNamespace.equals(OnvifType.GET_STREAM_URI.namespace)) {
+                            services.setMediaXaddr(uri);
+                        } else if (currentNamespace.equals(OnvifType.GET_PTZ.namespace)) {
+                            services.setPtzXaddr(uri);
+                        } else if (currentNamespace.equals(OnvifType.GET_IMAGING.namespace)) {
+                            services.setImagingXaddr(uri);
+                        } else if (currentNamespace.equals(OnvifType.GET_EVENTS.namespace)) {
+                            services.setEventsXaddr(uri);
+                        }
+                    } catch (IllegalArgumentException e) {
+                        log.debug("Ignoring an invalid service address");
                     }
                 }
             }

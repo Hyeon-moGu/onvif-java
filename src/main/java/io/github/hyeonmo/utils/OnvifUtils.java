@@ -41,7 +41,7 @@ public class OnvifUtils {
 
         String result = url.getPath();
         if (url.getQuery() != null) {
-            result += url.getQuery();
+            result += "?" + url.getQuery();
         }
 
         return result;

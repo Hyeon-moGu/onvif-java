@@ -69,6 +69,10 @@ public class OnvifClient {
      * @return A CompletableFuture containing the fully initialized OnvifDevice.
      */
     public CompletableFuture<OnvifDevice> buildAsync() {
+        return buildAsync(new OnvifManager());
+    }
+
+    CompletableFuture<OnvifDevice> buildAsync(OnvifManager manager) {
         OnvifDevice device = (existingDevice != null) ? existingDevice : new OnvifDevice(hostName, username, password);
         
         if (!username.isEmpty() || !password.isEmpty()) {
@@ -76,9 +80,15 @@ public class OnvifClient {
             device.setPassword(password);
         }
         
-        OnvifManager manager = new OnvifManager();
-
-        return manager.getCapabilities(device)
+        // Time lookup is best-effort, but must precede authenticated initialization.
+        return manager.getSystemDateAndTime(device)
+                .handle((date, ex) -> {
+                    if (date != null) {
+                        device.setTimeOffsetMs(date.getTime() - System.currentTimeMillis());
+                    }
+                    return device;
+                })
+                .thenCompose(ignored -> manager.getCapabilities(device))
                 .thenCompose(caps -> {
                     device.setCapabilities(caps);
                     return manager.getServices(device)
@@ -89,18 +99,7 @@ public class OnvifClient {
                                 return services;
                             });
                 })
-                .thenCompose(ignored -> manager.getSystemDateAndTime(device)
-                        .handle((date, ex) -> {
-                            if (ex != null) {
-                                return null;
-                            }
-                            return date;
-                        }))
-                .thenCompose(date -> {
-                    if (date != null) {
-                        long offsetMs = date.getTime() - System.currentTimeMillis();
-                        device.setTimeOffsetMs(offsetMs);
-                    }
+                .thenCompose(ignored -> {
                     return manager.getMediaProfiles(device)
                         .handle((profiles, ex) -> {
                             if (profiles != null) {

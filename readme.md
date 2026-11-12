@@ -29,14 +29,14 @@
 <dependency>
     <groupId>io.github.hyeon-mogu</groupId>
     <artifactId>onvif-java</artifactId>
-    <version>1.4.0</version>
+    <version>1.4.1</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```gradle
-implementation group: 'io.github.hyeon-mogu', name: 'onvif-java', version: '1.4.0'
+implementation group: 'io.github.hyeon-mogu', name: 'onvif-java', version: '1.4.1'
 ```
 
 ---
@@ -44,6 +44,10 @@ implementation group: 'io.github.hyeon-mogu', name: 'onvif-java', version: '1.4.
 ## Usage Guide
 
 The **`OnvifClient`** is the main entry point. Most operations return `CompletableFuture`, allowing fluent async composition.
+
+Initialization attempts a system-time lookup without a WS-Security token before authenticated requests. If the lookup fails, initialization continues without clock correction. Device-based imaging requests also use the measured time offset.
+
+Discovered service addresses retain their scheme, host, port, and query parameters; snapshot requests use the media service. `OnvifServices` exposes these addresses through its `getDeviceXaddr()`, `getMediaXaddr()`, `getPtzXaddr()`, `getImagingXaddr()`, and `getEventsXaddr()` accessors while retaining the existing path accessors. Setting a legacy path clears the corresponding address override.
 
 ### 1. Direct Connection
 
@@ -178,6 +182,10 @@ device.event().subscribe("tns1:VideoSource/MotionAlarm", event -> {
     session.unsubscribe().join();
 }).join();
 ```
+
+Managed event sessions renew before the camera-reported expiry, using the interval between `CurrentTime` and `TerminationTime` so local clock differences do not affect scheduling. If those times are unavailable, renewal is attempted every 30 seconds. Polling and renewal each retry transient network failures at most three times, after 1, 2, and 4 seconds; authentication and SOAP failures stop the session immediately. A failing event listener is logged and does not stop delivery of subsequent events.
+
+Use `session.getCompletion().whenComplete((ignored, error) -> { /* handle shutdown or terminal failure */ })` to observe the background session. `getSubscription()` remains the initial snapshot. Repeated `unsubscribe()` calls share one result, cancel in-flight polling/renewal HTTP calls, and stop scheduling. Remote unsubscribe remains best-effort, and `close()` still waits for it. A callback already running when shutdown starts may finish. Cancelling the future returned by `subscribe()` also cleans up a subscription endpoint that arrives later.
 
 ---
 

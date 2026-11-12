@@ -24,8 +24,8 @@ jobs:
           java-version: ${{ matrix.java-version }}
           cache: maven
 
-      - name: Compile Check
-        run: mvn clean compile -B
+      - name: Compile and Offline Tests
+        run: mvn clean test -B
 
 
   publish:

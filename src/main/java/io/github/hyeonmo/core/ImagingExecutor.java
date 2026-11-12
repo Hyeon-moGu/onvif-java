@@ -5,6 +5,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import io.github.hyeonmo.exceptions.OnvifExceptionFactory;
+import io.github.hyeonmo.exceptions.OnvifNetworkException;
 import io.github.hyeonmo.models.OnvifDevice;
 import io.github.hyeonmo.parsers.imaging.GetImagingSettingsParser;
 import io.github.hyeonmo.parsers.imaging.ImagingFocusParser;
@@ -39,7 +40,7 @@ public class ImagingExecutor {
 	}
 
 	public <T> CompletableFuture<T> sendRequest(OnvifDevice onvifDevice, ImagingRequest request) {
-		AuthXMLBuilder builder = new AuthXMLBuilder(onvifDevice.getUsername(), onvifDevice.getPassword());
+		AuthXMLBuilder builder = new AuthXMLBuilder(onvifDevice.getUsername(), onvifDevice.getPassword(), onvifDevice.getTimeOffsetMs());
 		RequestBody reqBody = RequestBody.create(reqBodyType, builder.getAuthHeader() + request.getXml() + builder.getAuthEnd());
 		return xmlRequest(request, buildOnvifRequest(request, reqBody));
 	}
@@ -71,20 +72,21 @@ public class ImagingExecutor {
 				ImagingResponse<?> response = new ImagingResponse<>(request);
 				ResponseBody xmlBody = xmlResponse.body();
 
-				if (xmlResponse.code() == 200 && xmlBody != null) {
-					response.setSuccess(true);
-					response.setXml(xmlBody.string());
-					try {
+				try (ResponseBody body = xmlBody) {
+					String responseXml = body != null ? body.string() : "";
+					if (xmlResponse.code() == 200 && body != null) {
+						response.setSuccess(true);
+						response.setXml(responseXml);
 						T result = parseResponseAsFutureResult(response);
 						future.complete(result);
-					} catch (Exception e) {
-						future.completeExceptionally(e);
+					} else {
+						future.completeExceptionally(OnvifExceptionFactory.fromHttpError(xmlResponse.code(), responseXml));
 					}
-					return;
+				} catch (IOException e) {
+					future.completeExceptionally(new OnvifNetworkException("Unable to read SOAP response", e));
+				} catch (Exception e) {
+					future.completeExceptionally(e);
 				}
-
-				String errorMessage = xmlBody != null ? xmlBody.string() : "";
-				future.completeExceptionally(OnvifExceptionFactory.fromHttpError(xmlResponse.code(), errorMessage));
 			}
 
 			@Override

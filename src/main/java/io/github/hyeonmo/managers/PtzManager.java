@@ -165,6 +165,10 @@ public class PtzManager {
 			}
 
 			if (onvifDevice.getPath() != null && onvifDevice.getPath().getPtzPath() != null) {
+				String serviceAddress = onvifDevice.getPath().getPtzXaddr();
+				if (serviceAddress != null && !serviceAddress.isEmpty()) {
+					return serviceAddress;
+				}
 				String baseUrl = onvifDevice.getBaseUrl();
 				if (baseUrl == null || baseUrl.isEmpty()) {
 					baseUrl = onvifDevice.getHostName();

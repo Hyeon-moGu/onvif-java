@@ -35,8 +35,12 @@ public class EventOperationsImpl implements EventOperations {
     @Override
     public CompletableFuture<EventSession> subscribe(String topicFilter, Consumer<Event> listener) {
         EventManager manager = new EventManager(device);
-        return manager.subscribe(topicFilter, listener)
-                .thenApply(ignored -> new EventSession(manager.getSubscription(), manager::unsubscribe));
+        CompletableFuture<EventSession> result = manager.subscribe(topicFilter, listener)
+                .thenApply(ignored -> new EventSession(manager.getSubscription(), manager::unsubscribe, manager.getCompletion()));
+        result.whenComplete((session, error) -> {
+            if (result.isCancelled()) manager.unsubscribe();
+        });
+        return result;
     }
 
     @Override

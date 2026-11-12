@@ -44,6 +44,11 @@ public class AuthXMLBuilder {
 	}
 
 	public String getAuthHeader() {
+		return getAuthHeader(true);
+	}
+
+	// Time lookup must work before the WS-Security clock offset is known.
+	String getAuthHeader(boolean includeSecurity) {
 		byte[] nonceBytes = new byte[16];
 		new Random().nextBytes(nonceBytes);
 		String nonceBase64 = Base64.getEncoder().encodeToString(nonceBytes);
@@ -80,7 +85,9 @@ public class AuthXMLBuilder {
 			sb.append("<wsa:Action s:mustUnderstand=\"1\">").append(wsaAction).append("</wsa:Action>");
 		}
 		if (wsaTo != null && !wsaTo.isEmpty()) {
-			sb.append("<wsa:To s:mustUnderstand=\"1\">").append(wsaTo).append("</wsa:To>");
+			sb.append("<wsa:To s:mustUnderstand=\"1\">")
+					.append(wsaTo.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+					.append("</wsa:To>");
 		}
 		if ((wsaAction != null && !wsaAction.isEmpty()) || (wsaTo != null && !wsaTo.isEmpty())) {
 			sb.append("<wsa:ReplyTo><wsa:Address>http://www.w3.org/2005/08/addressing/anonymous</wsa:Address></wsa:ReplyTo>");
@@ -89,22 +96,24 @@ public class AuthXMLBuilder {
 		if (additionalHeaderXml != null && !additionalHeaderXml.isEmpty()) {
 			sb.append(additionalHeaderXml);
 		}
-		sb.append("<wsse:Security>");
-		sb.append("<wsse:UsernameToken>");
-		sb.append("<wsse:Username>");
-		sb.append(userName);
-		sb.append("</wsse:Username>");
-		sb.append("<wsse:Password Type=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordDigest\">");
-		sb.append(passwordDigest);
-		sb.append("</wsse:Password>");
-		sb.append("<wsse:Nonce EncodingType=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary\">");
-		sb.append(nonceBase64);
-		sb.append("</wsse:Nonce>");
-		sb.append("<wsu:Created>");
-		sb.append(created);
-		sb.append("</wsu:Created>");
-		sb.append("</wsse:UsernameToken>");
-		sb.append("</wsse:Security>");
+		if (includeSecurity) {
+			sb.append("<wsse:Security>");
+			sb.append("<wsse:UsernameToken>");
+			sb.append("<wsse:Username>");
+			sb.append(userName);
+			sb.append("</wsse:Username>");
+			sb.append("<wsse:Password Type=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordDigest\">");
+			sb.append(passwordDigest);
+			sb.append("</wsse:Password>");
+			sb.append("<wsse:Nonce EncodingType=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary\">");
+			sb.append(nonceBase64);
+			sb.append("</wsse:Nonce>");
+			sb.append("<wsu:Created>");
+			sb.append(created);
+			sb.append("</wsu:Created>");
+			sb.append("</wsse:UsernameToken>");
+			sb.append("</wsse:Security>");
+		}
 		sb.append("</s:Header>");
 		sb.append("<s:Body>");
 
