@@ -26,9 +26,9 @@ public class OnvifUtils {
     /**
      * Util method to retrieve a path from an URL (without IP address and port)
      *
-     * @param uri example input: `http://192.168.1.0:8791/cam/realmonitor?audio=1`
-     * @example:
-     * @result example output: `cam/realmonitor?audio=1`
+     * @param uri URL, for example {@code http://camera.test:8791/cam/realmonitor?audio=1}
+     * @return path and query, for example {@code /cam/realmonitor?audio=1},
+     *         or an empty string if the URL is invalid
      */
     public static String getPathFromURL(String uri) {
         URL url;
